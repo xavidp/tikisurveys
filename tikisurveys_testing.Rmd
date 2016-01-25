@@ -1,0 +1,145 @@
+---
+title: "Tiki surveys Testing"
+author: "Xavier de Pedro Puente"
+date: "25/01/2016"
+output: html_document
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r install packages, echo=FALSE}
+if (!require("memisc")) {
+  install.packages("memisc")
+}
+# if it fails for some reason, like the package is just updated online but CRAN still points to the old package which is not available anymore, then you can install through github:
+devtools::install_github("melff/memisc",subdir="pkg")
+require (memisc)
+
+if (!require("sjPlot")) {
+  install.packages("sjPlot")
+}
+require(sjPlot)
+
+if (!require("sjmisc")) {
+  install.packages("sjmisc")
+}
+require(sjmisc)
+
+if (!require("httr")) {
+  install.packages("httr")
+}
+require(httr)
+
+if (!require("stringi")) {
+  install.packages("stringi")
+}
+require(stringi)
+
+if (!require("data.table")) {
+  install.packages("data.table")
+}
+require(data.table)
+
+```
+
+Fetch data from the trasplantaments db
+
+```{r, echo=T}
+
+description(t)
+
+# Load the httr package which will allow you to authenticate from R to your Tiki instance
+if (!require("httr")) {
+  install.packages("httr")
+}
+require(httr)
+# If your tiki is not under localhost, adapt the path below for my.file
+#my.file <- "http://localhost/12.x/tiki-ajax_services.php?controller=tracker&action=export_items&trackerId=1&encoding=UTF-8&separator=%2C&delimitorL=%22&delimitorR=%22&CR=%25%25%25&listfields[]=9&listfields[]=10&listfields[]=11&recordsMax=-1"
+my.trackerId <- 1
+my.domain <- "http://localhost/12.x/"
+my.file <- paste0(my.domain, "tiki-ajax_services.php?controller=tracker&action=export_items&trackerId=", my.trackerId,"&encoding=UTF-8&separator=%2C&delimitorL=%22&delimitorR=%22&CR=%25%25%25&recordsMax=-1")
+
+
+# You need to set "Admin > Control Panels > Security > HTTP Basic Authentication" (login_http_basic) to "Always"" or "SSL Only" 
+# Then create a user with the following credentials in your Tiki
+my.c <- GET(my.file, authenticate("exporter", "12345"))
+# my.c stands for my connection. It has a list of 10 elements.
+names(my.c)
+# [1] "url"         "status_code" "headers"     "all_headers" "cookies"     "content"     "date"       
+# [8] "times"       "request"     "handle" 
+
+str(content(my.c))
+
+# Fetch a guess for the encoding of the data that came from Tiki. It should be UTS-8 in most cases, but you never know (it depends on the configuration set at the local tiki instance)
+my.c.encoding <- stringi::stri_enc_detect(content(my.c, "raw"))
+my.c.encoding
+my.c.encoding <- my.c.encoding[[1]]$Encoding[1]
+my.c.encoding
+#my.df <- content(my.c, "text", encoding = my.c.encoding)
+
+# Fetch content in binari form and save to plain text file on disk
+bin <- content(my.c, "raw")
+my.tracker.file <- paste0("tracker_", my.trackerId,"_", format(Sys.Date(), "%y%m%d"),".csv")
+writeBin(bin, file.path(getwd(), my.tracker.file))
+
+my.df <- fread(file.path(getwd(), my.tracker.file), stringsAsFactors=FALSE, data.table=F)
+head(my.df[,1:10])
+
+# Try some packaages for a basic descriptive statistics out of some data set
+#
+# compareGroups: 
+# https://cran.r-project.org/web/packages/compareGroups/vignettes/compareGroups_vignette.pdf
+#
+# Describer (+ dplyr + knitr +reshape2): https://github.com/paulhendricks/describer
+#
+# Check vignettes of DescTools: http://www.r-pkg.org/pkg/DescTools
+# https://cran.r-project.org/web/packages/DescTools/vignettes/DescToolsCompanion.pdf
+# https://cran.r-project.org/web/packages/DescTools/vignettes/TablesInR.pdf
+#
+# memisc
+# http://www.elff.eu/memisc/gentab/
+# http://www.elff.eu/memisc/ftable-matrix/
+
+
+# Handling of values and labels:
+# http://www.elff.eu/memisc/items/
+## SEE: http://www.elff.eu/memisc/items/#codebooks-of-survey-items
+
+
+# And set that tracker id to allow registered to export tracker items
+#colnames(my.df) <- c("f_9", "f_10", "f_11")
+#unlist(str_split(colnames(my.df), "\\."))[1]
+#str_split(colnames(my.df), "\\.")[[1]][1] # field name from f_9 in this example
+#str_split(colnames(my.df), "\\.")[[2]][1] # field name from f_10 in this example
+#str_split(colnames(my.df), "\\.")[[3]][1] # field name from f_11 in this example
+
+
+#install.packages("sjPlot")
+#install.packages("sjmisc")
+#install.packages("stringr")
+
+# "Quantitative Discourse Analysis Package: Bridging the Gap Between Qualitative Data and Quantitative Analysis"
+#install.packages("qdap")
+#library(qdap)
+
+### EXAMPLE with pre-set data frame by hand
+marca<-c("opel","renault","renault")
+model<-c("corsa","laguna","modus")
+cilindrada<-c(1.2,1.9,1.5)
+color<-c("blanc","vermell","violeta")
+cotxes<-data.frame(marca,model,cilindrada,color)
+cotxes
+# init default theme for plots
+sjp.setTheme(geom.label.size = 2.5, axis.title.size = .9, axis.textsize = .9)
+sjp.frq(cotxes$marca)
+sjp.frq(my.df[1]) # this fails for unknown reason
+str(my.df)
+library(stringr)
+my.df <- set_val_labels(my.df, c(str_split(colnames(my.df), "\\.")[[1]][1],
+                                 str_split(colnames(my.df), "\\.")[[2]][1],
+                                 str_split(colnames(my.df), "\\.")[[3]][1]))
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
