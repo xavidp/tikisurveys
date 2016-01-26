@@ -9,52 +9,71 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r install packages, echo=FALSE}
-if (!require("memisc")) {
-  install.packages("memisc")
-}
-# if it fails for some reason, like the package is just updated online but CRAN still points to the old package which is not available anymore, then you can install through github:
-devtools::install_github("melff/memisc",subdir="pkg")
-require (memisc)
+## Install packages
 
-if (!require("sjPlot")) {
-  install.packages("sjPlot")
+```{r Install packages, echo=FALSE}
+#############################
+# Package dependencies
+#############################
+## ----librerias, eval=TRUE------------------------------------------------
+## Bioconductor
+installifnot <- function (pckgName){
+  if(!(require(pckgName, character.only=TRUE))){
+    source("http://Bioconductor.org/biocLite.R")
+    biocLite(pckgName)
+  }
 }
-require(sjPlot)
+# Names of packages to be installed from BIOCONDUCTOR if not present yet in this machine
+pBIOC <- NULL
 
-if (!require("sjmisc")) {
-  install.packages("sjmisc")
+if( any(!pBIOC %in% rownames(installed.packages())) ){
+  installifnot(pBIOC[!pBIOC %in% rownames(installed.packages())])
 }
-require(sjmisc)
 
-if (!require("httr")) {
-  install.packages("httr")
+# Names of packages to be installed from CRAN if not present yet in this machine
+pCRAN <- c("devtools",
+           "sjPlot",
+           "sjmisc",
+           "ggplot2",
+           "httr",
+           "stringi",
+           "stringr",
+           "data.table",
+           "memisc")
+
+if( any(!pCRAN %in% rownames(installed.packages())) ){
+  install.packages(pCRAN[!pCRAN %in% rownames(installed.packages())])
 }
-require(httr)
 
-if (!require("stringi")) {
-  install.packages("stringi")
+if(!require(rCharts)) install_github('rCharts', 'ramnathv')
+
+#Load required libraries
+packages <- c(pBIOC, pCRAN)
+for (ii in 1:length(packages)) {
+  require(as.character(packages[ii]), character.only=TRUE)
 }
-require(stringi)
 
-if (!require("data.table")) {
-  install.packages("data.table")
-}
-require(data.table)
-
+# if memisc fails for some reason on CRAN, like the package is just updated online but CRAN still points to the old package which is not available anymore, then you can install through github:
+#devtools::install_github("melff/memisc",subdir="pkg")
 ```
 
-Fetch data from the trasplantaments db
+## Load data from Rda (if available)
+
+```{r Load data from Rda (if available), echo=TRUE}
+my.rda <- "mySession.Rda"
+
+# load it from disk (if present on disk)
+if (file.exists(file.path(getwd(), my.rda))) {
+  ## ----loadData------------------------------------------------------------
+  load(file=file.path(getwd(), my.rda))
+}
+```
+
+## Fetch data from the trasplantaments db
 
 ```{r, echo=T}
+aID <- "TikiTrackerDB" # Analysis ID
 
-description(t)
-
-# Load the httr package which will allow you to authenticate from R to your Tiki instance
-if (!require("httr")) {
-  install.packages("httr")
-}
-require(httr)
 # If your tiki is not under localhost, adapt the path below for my.file
 #my.file <- "http://localhost/12.x/tiki-ajax_services.php?controller=tracker&action=export_items&trackerId=1&encoding=UTF-8&separator=%2C&delimitorL=%22&delimitorR=%22&CR=%25%25%25&listfields[]=9&listfields[]=10&listfields[]=11&recordsMax=-1"
 my.trackerId <- 1
@@ -73,20 +92,21 @@ names(my.c)
 str(content(my.c))
 
 # Fetch a guess for the encoding of the data that came from Tiki. It should be UTS-8 in most cases, but you never know (it depends on the configuration set at the local tiki instance)
-my.c.encoding <- stringi::stri_enc_detect(content(my.c, "raw"))
+my.c.encoding <- stringi::stri_enc_detect(httr::content(my.c, "raw"))
 my.c.encoding
 my.c.encoding <- my.c.encoding[[1]]$Encoding[1]
 my.c.encoding
 #my.df <- content(my.c, "text", encoding = my.c.encoding)
 
 # Fetch content in binari form and save to plain text file on disk
-bin <- content(my.c, "raw")
+bin <- httr::content(my.c, "raw")
 my.tracker.file <- paste0("tracker_", my.trackerId,"_", format(Sys.Date(), "%y%m%d"),".csv")
 writeBin(bin, file.path(getwd(), my.tracker.file))
 
 my.df <- fread(file.path(getwd(), my.tracker.file), stringsAsFactors=FALSE, data.table=F)
 head(my.df[,1:10])
 
+#description(my.df[,1:10])
 # Try some packaages for a basic descriptive statistics out of some data set
 #
 # compareGroups: 
@@ -132,14 +152,40 @@ color<-c("blanc","vermell","violeta")
 cotxes<-data.frame(marca,model,cilindrada,color)
 cotxes
 # init default theme for plots
-sjp.setTheme(geom.label.size = 2.5, axis.title.size = .9, axis.textsize = .9)
-sjp.frq(cotxes$marca)
-sjp.frq(my.df[1]) # this fails for unknown reason
-str(my.df)
-library(stringr)
-my.df <- set_val_labels(my.df, c(str_split(colnames(my.df), "\\.")[[1]][1],
-                                 str_split(colnames(my.df), "\\.")[[2]][1],
-                                 str_split(colnames(my.df), "\\.")[[3]][1]))
+#sjp.setTheme(geom.label.size = 2.5, axis.title.size = .9, axis.textsize = .9)
+#sjp.frq(cotxes$marca)
+#str(my.df)
+#sjp.frq(my.df[,1]) # this fails for unknown reason
+#my.df <- set_val_labels(my.df, c(str_split(colnames(my.df), "\\.")[[1]][1],
+#                                 str_split(colnames(my.df), "\\.")[[2]][1],
+#                                 str_split(colnames(my.df), "\\.")[[3]][1]))
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r Store objects into an Rda, echo=FALSE}
+save(my.df,
+     file=my.rda)
+```
+
+```{r Stored session info, echo=FALSE}
+###################################################
+# Store session info (package versions, etc) in the logs folder
+###################################################
+sink(file.path(paste0("log_", format(Sys.Date(), format="%y%m%d"), "_", aID, ".txt")))
+cat("Sys.info() : \n")
+cat("--------------------\n")
+data.frame(Sys.info())
+if (exists("biocValid")) {
+  cat("\n\nbiocValid() : \n")
+  cat("--------------------\n")
+  biocValid()
+} else { # Only show sessionInfo() if no biocValid() is found since it's already included in it.
+  cat("\n\nsessionInfo() : \n")
+  cat("--------------------\n")
+  sessionInfo()
+}
+sink()
+
+```
+
