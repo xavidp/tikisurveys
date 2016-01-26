@@ -39,6 +39,7 @@ pCRAN <- c("devtools",
            "stringi",
            "stringr",
            "data.table",
+           "RMySQL",
            "memisc")
 
 if( any(!pCRAN %in% rownames(installed.packages())) ){
@@ -105,7 +106,58 @@ writeBin(bin, file.path(getwd(), my.tracker.file))
 
 my.df <- fread(file.path(getwd(), my.tracker.file), stringsAsFactors=FALSE, data.table=F)
 head(my.df[,1:10])
+```
 
+## massage and cleanup the dataset
+We apply an "apply" function to the whole data frame just for the sake of practising with the apply function itself, since the gsub would do it on the 2nd column, which is the only one selfnumbered which carries this html markup to show the "#" sign in front of it, as defined in teh Tracker Field definition.
+
+```{r massage and cleanup the dataset, echo=TRUE}
+gsub("<span class='formunit'>#</span>", "", my.df[1,2], fixed=T)
+my.df.c <- apply(my.df, 2, gsub, pattern="<span class='formunit'>#</span>", replacement="", fixed=T)
+my.df.c[,1:10]
+
+```
+
+# 
+
+This package doesn't See Presentation from:
+http://files.meetup.com/1781511/useR%20Vignette%20-%20Accessing%20Databases%20from%20R%20-%2020110504.pdf
+
+```{r Fetch Mysql DB Table for Tracker fields}
+myTrackerId <- 1
+myMySQLUser <- "exporter"
+myMySQLPw   <- "12345"
+myTikiDb    <- "tiki12svn_trasplantaments"
+myTikiTable <- "tiki_tracker_fields"
+# connect to local MySQL database (host='localhost' by default)
+con = dbConnect(RMySQL::MySQL(), myTikiDb, username=myMySQLUser, password=myMySQLPw)
+summary(con)
+dbGetInfo(con)
+dbListResults(con)
+db.tables <- dbListTables(con)
+head(db.tables)
+#tmp <- sprintf("SELECT * FROM name WHERE lname = %s", "O'Reilly")
+#dbEscapeStrings(con, tmp)
+
+my.t = dbReadTable(con, myTikiTable) # All fields from all trackers
+head(my.t, 4)
+dim(my.t)
+# [1] 274  23
+
+my.tt <- base::subset(my.t, trackerId == myTrackerId) # My Tracker Tables
+dim(my.tt)
+my.t.fieldIds = dbGetQuery(con, paste0("SELECT DISTINCT fieldId FROM ", myTikiTable))
+
+# Add here the commands to create a codebook from memisc
+# See http://r-es.org/7jornadasR/ponencias/jose_ignacio_casas.pdf (Slide 21 onwards)
+
+dim(my.t.fieldIds)
+
+dbDisconnect(con)
+
+```
+
+```{r Some ways to make descriptive statistics}
 #description(my.df[,1:10])
 # Try some packaages for a basic descriptive statistics out of some data set
 #
@@ -168,7 +220,7 @@ save(my.df,
      file=my.rda)
 ```
 
-```{r Stored session info, echo=FALSE}
+```{r Stored session info, echo=TRUE}
 ###################################################
 # Store session info (package versions, etc) in the logs folder
 ###################################################

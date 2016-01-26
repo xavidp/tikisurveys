@@ -246,8 +246,15 @@ cotxes</code></pre>
 #                                 str_split(colnames(my.df), &quot;\\.&quot;)[[2]][1],
 #                                 str_split(colnames(my.df), &quot;\\.&quot;)[[3]][1]))</code></pre>
 <p>Note that the <code>echo = FALSE</code> parameter was added to the code chunk to prevent printing of the R code that generated the plot.</p>
+<pre class="r"><code>###################################################
+# Store session info (package versions, etc) in the logs folder
+###################################################
+sink(file.path(paste0(&quot;log_&quot;, format(Sys.Date(), format=&quot;%y%m%d&quot;), &quot;_&quot;, aID, &quot;.txt&quot;)))
+cat(&quot;Sys.info() : \n&quot;)</code></pre>
 <pre><code>## Sys.info() :</code></pre>
+<pre class="r"><code>cat(&quot;--------------------\n&quot;)</code></pre>
 <pre><code>## --------------------</code></pre>
+<pre class="r"><code>data.frame(Sys.info())</code></pre>
 <pre><code>##                                                         Sys.info..
 ## sysname                                                      Linux
 ## release                                          3.16.0-57-generic
@@ -257,6 +264,15 @@ cotxes</code></pre>
 ## login                                                      unknown
 ## user                                                          xavi
 ## effective_user                                                xavi</code></pre>
+<pre class="r"><code>if (exists(&quot;biocValid&quot;)) {
+  cat(&quot;\n\nbiocValid() : \n&quot;)
+  cat(&quot;--------------------\n&quot;)
+  biocValid()
+} else { # Only show sessionInfo() if no biocValid() is found since it's already included in it.
+  cat(&quot;\n\nsessionInfo() : \n&quot;)
+  cat(&quot;--------------------\n&quot;)
+  sessionInfo()
+}</code></pre>
 <pre><code>## 
 ## 
 ## sessionInfo() : 
@@ -296,6 +312,7 @@ cotxes</code></pre>
 ## [34] htmltools_0.3      splines_3.2.3      mnormt_1.5-3      
 ## [37] assertthat_0.1     pbkrtest_0.4-5     colorspace_1.2-6  
 ## [40] quantreg_5.19      munsell_0.4.2      chron_2.3-47</code></pre>
+<pre class="r"><code>sink()</code></pre>
 </div>
 
 
