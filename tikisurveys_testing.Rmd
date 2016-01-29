@@ -40,6 +40,7 @@ pCRAN <- c("devtools",
            "stringr",
            "data.table",
            "RMySQL",
+           "jsonlite",
            "memisc")
 
 if( any(!pCRAN %in% rownames(installed.packages())) ){
@@ -144,13 +145,83 @@ head(my.t, 4)
 dim(my.t)
 # [1] 274  23
 
-my.tt <- base::subset(my.t, trackerId == myTrackerId) # My Tracker Tables
-dim(my.tt)
+my.tfd <- base::subset(my.t, trackerId == myTrackerId) # My Tracker Fields Definition
+dim(my.tfd)
+head(my.tfd)
 my.t.fieldIds = dbGetQuery(con, paste0("SELECT DISTINCT fieldId FROM ", myTikiTable))
 
+# Test displaying as dataframe some json-encoded data from a radio button field definition
+# For instance, field 281 (raw 1 in the my.tt df) "AnoxToxMet. RNM":
+my.tfd[1,"options"]
+#[1] "{\"options\":[\"0=Normal\",\"1=Anormal\"]}"
+fromJSON(my.tt[1,"options"])
+#$options
+#[1] "0=Normal"  "1=Anormal"
+
+# Display with row from the my.tt df object contains the values for the definition of fieldId 9 (Sexo -- 9)
+#which(my.tfd$fieldId==9)
+# [1] 135
+#my.tfd[which(my.tfd$fieldId==9),"options"]
+# [1] "{\"options\":[\"0=Mujer\",\"1=Varon\",\"99=ns/nc\"]}"
+my.options <- unlist(fromJSON(my.tfd[which(my.tfd$fieldId==9),"options"]))
+my.op.tmp <- unlist(str_split(my.options, "="))
+
+
+#head(my.df[,1:10])
+#length(colnames(my.df))
+#[1] 274
+#str(my.df[,"Sexo -- 9"])
+
+my.field.colname <- "Sexo -- 9" # As a Column name of my.df
+my.field.name <- unlist(str_split(my.field.colname, " -- "))[1]
+my.field.id <- unlist(str_split(my.field.colname, " -- "))[2]
+my.field.data <- as.numeric(my.df[,my.field.colname])
+
+cc <- 0 # loop counter
+#Recode something like 
+                  # "0"     "Mujer" "1"     "Varon" "99"    "ns/nc"
+                  # into something like:
+                  # "Mujer" = 0, "Varon" = 1, "ns/nc" = 99
+                  my.options <- NULL
+                  for (ii in seq(1, length(my.op.tmp), by=2)) {
+                    # ii <- 1
+                    cc <- cc+1
+                    my.options[cc] <- my.op.tmp[ii+1]
+                    assign(my.options[cc], as.factor(my.op.tmp[ii]))
+#                    memisc::labels(my.field.data) <- c(memisc::labels(my.field.data),
+#                                                       my.op.tmp[ii+1])
+#                      my.options <- paste0("\"", my.op.tmp[ii+1], "\" = ", as.numeric(my.op.tmp[ii]))
+
+                  }
+memisc::labels(my.field.data) <- labels(my.options)
+memisc::labels(my.options)
+memisc::labels(my.field.data)
+                  #  print(my.options)
+#memisc::labels(my.field.data) <- eval(parse(text =my.options))
+#class(my.options)
+#length(my.options)
+rm(my.field.data)
+
+c("\"Mujer\"" = 0,  "\"Varon\"" = 1,  "\"ns/nc\"" = 99)
+memisc::labels(my.field.data) <- c("Mujer" = 0,
+                           "Varon" = 1,
+                           "ns/nc" = 99)
+labels(my.field.data)
+x <- as.item(my.df[,my.field],
+             labels=c(
+                 paste(my.options, collapse=",")
+               ),
+             missing.values=99,
+             annotation = c(
+               description=my.field.name
+               )
+             )
+str(x)
+
+# CodeBooks
+# ----------
 # Add here the commands to create a codebook from memisc
 # See http://r-es.org/7jornadasR/ponencias/jose_ignacio_casas.pdf (Slide 21 onwards)
-
 dim(my.t.fieldIds)
 
 dbDisconnect(con)
