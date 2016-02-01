@@ -9,6 +9,10 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
+Interesting Slides from a presentation in VII Jornades de Usuarios de R (R-es)
+See Presentation from:
+http://files.meetup.com/1781511/useR%20Vignette%20-%20Accessing%20Databases%20from%20R%20-%2020110504.pdf
+
 ## Install packages
 
 ```{r Install packages, echo=FALSE}
@@ -73,7 +77,7 @@ if (file.exists(file.path(getwd(), my.rda))) {
 
 ## Fetch data from the trasplantaments db
 
-```{r, echo=T}
+```{r Fetch data from the trasplantaments db, echo=T}
 aID <- "TikiTrackerDB" # Analysis ID
 
 # If your tiki is not under localhost, adapt the path below for my.file
@@ -119,10 +123,7 @@ my.df.c[,1:10]
 
 ```
 
-# 
-
-This package doesn't See Presentation from:
-http://files.meetup.com/1781511/useR%20Vignette%20-%20Accessing%20Databases%20from%20R%20-%2020110504.pdf
+# Fetch Mysql DB Table for Tracker fields
 
 ```{r Fetch Mysql DB Table for Tracker fields}
 myTrackerId <- 1
@@ -152,6 +153,11 @@ my.tfd <- base::subset(my.t, trackerId == myTrackerId) # My Tracker Fields Defin
 # You might want to Check that there are not duplicataed field definitions
 #my.t.fieldIds = dbGetQuery(con, paste0("SELECT DISTINCT fieldId FROM ", myTikiTable))
 
+# Disconnect from the MySQL connection
+dbDisconnect(con)
+```
+
+```{r Test the display for a couple of radio button fields}
 # Test displaying as dataframe some json-encoded data from a radio button field definition
 # For instance, field 281 (raw 1 in the my.tt df) "AnoxToxMet. RNM":
 my.tfd[1,"options"]
@@ -214,30 +220,39 @@ my.options <- as.item(my.field.data,
                         description=my.field.name
                         )
                       )
-#memisc::labels(my.options)
-class(my.field.data)
+memisc::labels(my.options)
 
+class(my.field.data)
+```
+
+# Convert the tracker data to data.set for package memisc
+
+```{r Convert the tracker data to data.set for package memisc}
 # Our data is still stored as a matrix.
 #class(my.df.c)
 
 # Therefore we need to convert the clean matrix of data, into a data.frame, and convert it to class data.set from package memisc
 my.ds <- as.data.set(data.frame(my.df.c)) 
-#class(my.ds)
+class(my.ds)
 
+```
 
+# Create Codebook (optional)
+
+```{r Create Codebook (optional)}
 # CodeBooks
 # ----------
 # Add here the commands to create a codebook from memisc, in case we need it. But since we don't, it seems, then we skip this part, for the time being.
 
 
+```
+
+# Some ways to make descriptive statistics
+
+```{r Some ways to make descriptive statistics}
 # See http://r-es.org/7jornadasR/ponencias/jose_ignacio_casas.pdf (Slide 21 onwards)
 dim(my.t.fieldIds)
 
-dbDisconnect(con)
-
-```
-
-```{r Some ways to make descriptive statistics}
 #description(my.df[,1:10])
 # Try some packaages for a basic descriptive statistics out of some data set
 #
@@ -258,14 +273,6 @@ dbDisconnect(con)
 # Handling of values and labels:
 # http://www.elff.eu/memisc/items/
 ## SEE: http://www.elff.eu/memisc/items/#codebooks-of-survey-items
-
-
-# And set that tracker id to allow registered to export tracker items
-#colnames(my.df) <- c("f_9", "f_10", "f_11")
-#unlist(str_split(colnames(my.df), "\\."))[1]
-#str_split(colnames(my.df), "\\.")[[1]][1] # field name from f_9 in this example
-#str_split(colnames(my.df), "\\.")[[2]][1] # field name from f_10 in this example
-#str_split(colnames(my.df), "\\.")[[3]][1] # field name from f_11 in this example
 
 
 #install.packages("sjPlot")
@@ -297,6 +304,7 @@ Note that the `echo = FALSE` parameter was added to the code chunk to prevent pr
 
 ```{r Store objects into an Rda, echo=FALSE}
 save(my.df,
+     my.ds,
      file=my.rda)
 ```
 

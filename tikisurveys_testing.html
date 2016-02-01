@@ -76,13 +76,15 @@ img {
 ## Loading required package: devtools
 ## Loading required package: sjPlot</code></pre>
 <pre><code>## Warning: replacing previous import by 'grid::unit' when loading 'sjPlot'</code></pre>
-<pre><code>## Visit http://strengejacke.de/sjPlot for package-vignettes.
-## Loading required package: sjmisc
+<pre><code>## Loading required package: sjmisc
 ## Loading required package: ggplot2
 ## Loading required package: httr
 ## Loading required package: stringi
 ## Loading required package: stringr
 ## Loading required package: data.table
+## Loading required package: RMySQL
+## Loading required package: DBI
+## Loading required package: jsonlite
 ## Loading required package: memisc
 ## Loading required package: lattice
 ## Loading required package: MASS
@@ -188,6 +190,281 @@ head(my.df[,1:10])</code></pre>
 ## 4            1944-05-19         1
 ## 5            1942-10-13         1
 ## 6            1927-03-11         0</code></pre>
+</div>
+<div id="massage-and-cleanup-the-dataset" class="section level2">
+<h2>massage and cleanup the dataset</h2>
+<p>We apply an “apply” function to the whole data frame just for the sake of practising with the apply function itself, since the gsub would do it on the 2nd column, which is the only one selfnumbered which carries this html markup to show the “#” sign in front of it, as defined in teh Tracker Field definition.</p>
+<pre class="r"><code>gsub(&quot;&lt;span class='formunit'&gt;#&lt;/span&gt;&quot;, &quot;&quot;, my.df[1,2], fixed=T)</code></pre>
+<pre><code>## [1] &quot;1&quot;</code></pre>
+<pre class="r"><code>my.df.c &lt;- apply(my.df, 2, gsub, pattern=&quot;&lt;span class='formunit'&gt;#&lt;/span&gt;&quot;, replacement=&quot;&quot;, fixed=T)
+my.df.c[,1:10]</code></pre>
+<pre><code>##       INTRODUCCIÓN -- 525 #Id -- 1 Editado por -- 2
+##  [1,] &quot;&quot;                  &quot;1&quot;      &quot;becari&quot;        
+##  [2,] &quot;&quot;                  &quot;2&quot;      &quot;sandi&quot;         
+##  [3,] &quot;&quot;                  &quot;3&quot;      &quot;admin&quot;         
+##  [4,] &quot;&quot;                  &quot;5&quot;      &quot;sandi&quot;         
+##  [5,] &quot;&quot;                  &quot;6&quot;      &quot;sandi&quot;         
+##  [6,] &quot;&quot;                  &quot;7&quot;      &quot;sandi&quot;         
+##  [7,] &quot;&quot;                  &quot;8&quot;      &quot;sandi&quot;         
+##  [8,] &quot;&quot;                  &quot;9&quot;      &quot;sandi&quot;         
+##  [9,] &quot;&quot;                  &quot;10&quot;     &quot;sandi&quot;         
+## [10,] &quot;&quot;                  &quot;11&quot;     &quot;sandi&quot;         
+## [11,] &quot;&quot;                  &quot;12&quot;     &quot;sandi&quot;         
+## [12,] &quot;&quot;                  &quot;13&quot;     &quot;sandi&quot;         
+## [13,] &quot;&quot;                  &quot;14&quot;     &quot;sandi&quot;         
+## [14,] &quot;&quot;                  &quot;15&quot;     &quot;sandi&quot;         
+## [15,] &quot;&quot;                  &quot;16&quot;     &quot;sandi&quot;         
+## [16,] &quot;&quot;                  &quot;17&quot;     &quot;sandi&quot;         
+##       Comentarios -- 3                                                                                                
+##  [1,] &quot;Prueba 1 (UEB)&quot;                                                                                                
+##  [2,] &quot;Prueba de registro para que quede en estado \&quot;\&quot;\&quot;\&quot;ongoing - en curso (pendiente de acabar y validar)\&quot;\&quot;\&quot;\&quot;&quot;
+##  [3,] &quot;Prueba 3 UEB (item completo y validado (item cerrado)&quot;                                                         
+##  [4,] &quot;&quot;                                                                                                              
+##  [5,] &quot;&quot;                                                                                                              
+##  [6,] &quot;&quot;                                                                                                              
+##  [7,] &quot;&quot;                                                                                                              
+##  [8,] &quot;&quot;                                                                                                              
+##  [9,] &quot;&quot;                                                                                                              
+## [10,] &quot;&quot;                                                                                                              
+## [11,] &quot;&quot;                                                                                                              
+## [12,] &quot;&quot;                                                                                                              
+## [13,] &quot;&quot;                                                                                                              
+## [14,] &quot;&quot;                                                                                                              
+## [15,] &quot;&quot;                                                                                                              
+## [16,] &quot;&quot;                                                                                                              
+##       PACIENTE -- 4 DATOS BASICOS (Paciente) -- 5 Nombre -- 6         
+##  [1,] &quot;&quot;            &quot;&quot;                            &quot;ABC (Prueba 1 UEB)&quot;
+##  [2,] &quot;&quot;            &quot;&quot;                            &quot;DEF (Prueba 2 UEB)&quot;
+##  [3,] &quot;&quot;            &quot;&quot;                            &quot;FGH (Prueba 3 UEB)&quot;
+##  [4,] &quot;&quot;            &quot;&quot;                            &quot;JBRV&quot;              
+##  [5,] &quot;&quot;            &quot;&quot;                            &quot;ASM&quot;               
+##  [6,] &quot;&quot;            &quot;&quot;                            &quot;EBE&quot;               
+##  [7,] &quot;&quot;            &quot;&quot;                            &quot;&quot;                  
+##  [8,] &quot;&quot;            &quot;&quot;                            &quot;DHA&quot;               
+##  [9,] &quot;&quot;            &quot;&quot;                            &quot;DHA&quot;               
+## [10,] &quot;&quot;            &quot;&quot;                            &quot;MRF&quot;               
+## [11,] &quot;&quot;            &quot;&quot;                            &quot;GAP&quot;               
+## [12,] &quot;&quot;            &quot;&quot;                            &quot;NFM&quot;               
+## [13,] &quot;&quot;            &quot;&quot;                            &quot;CFP&quot;               
+## [14,] &quot;&quot;            &quot;&quot;                            &quot;FHG&quot;               
+## [15,] &quot;&quot;            &quot;&quot;                            &quot;FBJ&quot;               
+## [16,] &quot;&quot;            &quot;&quot;                            &quot;ELM&quot;               
+##       NHC -- 7    Fecha nacimiento -- 8 Sexo -- 9
+##  [1,] &quot;485628795&quot; &quot;1932-03-05&quot;          &quot;1&quot;      
+##  [2,] &quot;99999&quot;     &quot;1972-01-16&quot;          &quot;1&quot;      
+##  [3,] &quot;895814478&quot; &quot;1914-01-01&quot;          &quot;0&quot;      
+##  [4,] &quot;11912584&quot;  &quot;1944-05-19&quot;          &quot;1&quot;      
+##  [5,] &quot;14356139&quot;  &quot;1942-10-13&quot;          &quot;1&quot;      
+##  [6,] &quot;11767725&quot;  &quot;1927-03-11&quot;          &quot;0&quot;      
+##  [7,] &quot;&quot;          &quot;&quot;                    &quot;&quot;       
+##  [8,] &quot;13351240&quot;  &quot;1970-08-09&quot;          &quot;0&quot;      
+##  [9,] &quot;11865913&quot;  &quot;1970-08-09&quot;          &quot;0&quot;      
+## [10,] &quot;17279737&quot;  &quot;1956-11-22&quot;          &quot;1&quot;      
+## [11,] &quot;14033642&quot;  &quot;1943-03-18&quot;          &quot;1&quot;      
+## [12,] &quot;17468438&quot;  &quot;1974-12-17&quot;          &quot;0&quot;      
+## [13,] &quot;14704880&quot;  &quot;1938-02-19&quot;          &quot;0&quot;      
+## [14,] &quot;12198136&quot;  &quot;1950-08-18&quot;          &quot;1&quot;      
+## [15,] &quot;11783592&quot;  &quot;2015-11-16&quot;          &quot;1&quot;      
+## [16,] &quot;11714234&quot;  &quot;1934-02-28&quot;          &quot;1&quot;</code></pre>
+</div>
+<div id="interesting-slides-from-a-presentation-in-vii-jornades-de-usuarios-de-r-r-es" class="section level1">
+<h1>Interesting Slides from a presentation in VII Jornades de Usuarios de R (R-es)</h1>
+<p>See Presentation from: <a href="http://files.meetup.com/1781511/useR%20Vignette%20-%20Accessing%20Databases%20from%20R%20-%2020110504.pdf">http://files.meetup.com/1781511/useR%20Vignette%20-%20Accessing%20Databases%20from%20R%20-%2020110504.pdf</a></p>
+</div>
+<div id="fetch-mysql-db-table-for-tracker-fields" class="section level1">
+<h1>Fetch Mysql DB Table for Tracker fields</h1>
+<pre class="r"><code>myTrackerId &lt;- 1
+myMySQLUser &lt;- &quot;exporter&quot;
+myMySQLPw   &lt;- &quot;12345&quot;
+myTikiDb    &lt;- &quot;tiki12svn_trasplantaments&quot;
+myTikiTable &lt;- &quot;tiki_tracker_fields&quot;
+# connect to local MySQL database (host='localhost' by default)
+con = dbConnect(RMySQL::MySQL(), myTikiDb, username=myMySQLUser, password=myMySQLPw)
+summary(con)</code></pre>
+<pre><code>## &lt;MySQLConnection:0,0&gt;
+##   User:   exporter 
+##   Host:   localhost 
+##   Dbname: tiki12svn_trasplantaments 
+##   Connection type: Localhost via UNIX socket 
+## 
+## Results:</code></pre>
+<pre class="r"><code>dbGetInfo(con)</code></pre>
+<pre><code>## $host
+## [1] &quot;localhost&quot;
+## 
+## $user
+## [1] &quot;exporter&quot;
+## 
+## $dbname
+## [1] &quot;tiki12svn_trasplantaments&quot;
+## 
+## $conType
+## [1] &quot;Localhost via UNIX socket&quot;
+## 
+## $serverVersion
+## [1] &quot;5.5.46-0ubuntu0.14.04.2&quot;
+## 
+## $protocolVersion
+## [1] 10
+## 
+## $threadId
+## [1] 2845
+## 
+## $rsId
+## list()</code></pre>
+<pre class="r"><code>dbListResults(con)</code></pre>
+<pre><code>## list()</code></pre>
+<pre class="r"><code>db.tables &lt;- dbListTables(con)
+head(db.tables)</code></pre>
+<pre><code>## [1] &quot;index_56a2d79a957ff&quot; &quot;index_pref_en&quot;       &quot;index_pref_es&quot;      
+## [4] &quot;messu_archive&quot;       &quot;messu_messages&quot;      &quot;messu_sent&quot;</code></pre>
+<pre class="r"><code>#tmp &lt;- sprintf(&quot;SELECT * FROM name WHERE lname = %s&quot;, &quot;O'Reilly&quot;)
+#dbEscapeStrings(con, tmp)
+
+my.t = dbReadTable(con, myTikiTable) # All fields from all trackers
+head(my.t, 4)</code></pre>
+<pre><code>##   fieldId trackerId                          name
+## 1     281         1               AnoxToxMet. RNM
+## 2     280         1               AnoxToxMet. TAC
+## 3     270         1 AnoxToxMet. Anoxia Mioclonias
+## 4     507         1          Otras comorbilidades
+##                      permName
+## 1          h1_I3_I5_AnoxiaRNM
+## 2          h1_I3_I5_AnoxiaTAC
+## 3 h1_I2_V_C5_AnoxiaMioclonias
+## 4         otrasComorbilidades
+##                                          options type isMain isTblVisible
+## 1           {&quot;options&quot;:[&quot;0=Normal&quot;,&quot;1=Anormal&quot;]}    R      n            n
+## 2             {&quot;options&quot;:[&quot;0=Normal&quot;,&quot;1=Edema&quot;]}    R      n            n
+## 3 {&quot;options&quot;:[&quot;0=No&quot;,&quot;1=S\\u00ed&quot;,&quot;99=ns\\/nc&quot;]}    R      n            n
+## 4                                                   t      n            n
+##   position isSearchable isPublic isHidden isMandatory description
+## 1     2100            y        y        n           n            
+## 2     2090            y        y        n           n            
+## 3     2070            y        y        n           n            
+## 4      290            n        y        n           n            
+##   isMultilingual itemChoices errorMsg visibleBy editableBy
+## 1              n                                          
+## 2              n                                          
+## 3              n                                          
+## 4                                                         
+##   descriptionIsParsed validation validationParam validationMessage
+## 1                   n                                             
+## 2                   n                                             
+## 3                   n                                             
+## 4                   n</code></pre>
+<pre class="r"><code>dim(my.t)</code></pre>
+<pre><code>## [1] 274  23</code></pre>
+<pre class="r"><code># [1] 274  23
+
+my.tfd &lt;- base::subset(my.t, trackerId == myTrackerId) # My Tracker Fields Definition
+#dim(my.tfd)
+#head(my.tfd)
+
+# You might want to Check that there are not duplicataed field definitions
+#my.t.fieldIds = dbGetQuery(con, paste0(&quot;SELECT DISTINCT fieldId FROM &quot;, myTikiTable))
+
+# Disconnect from the MySQL connection
+dbDisconnect(con)</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<pre class="r"><code># Test displaying as dataframe some json-encoded data from a radio button field definition
+# For instance, field 281 (raw 1 in the my.tt df) &quot;AnoxToxMet. RNM&quot;:
+my.tfd[1,&quot;options&quot;]</code></pre>
+<pre><code>## [1] &quot;{\&quot;options\&quot;:[\&quot;0=Normal\&quot;,\&quot;1=Anormal\&quot;]}&quot;</code></pre>
+<pre class="r"><code>#[1] &quot;{\&quot;options\&quot;:[\&quot;0=Normal\&quot;,\&quot;1=Anormal\&quot;]}&quot;
+fromJSON(my.tt[1,&quot;options&quot;])</code></pre>
+<pre><code>## $options
+## [1] &quot;0=Normal&quot;  &quot;1=Anormal&quot;</code></pre>
+<pre class="r"><code>#$options
+#[1] &quot;0=Normal&quot;  &quot;1=Anormal&quot;
+
+# Display with row from the my.tt df object contains the values for the definition of fieldId 9 (Sexo -- 9)
+#which(my.tfd$fieldId==9)
+# [1] 135
+#my.tfd[which(my.tfd$fieldId==9),&quot;options&quot;]
+# [1] &quot;{\&quot;options\&quot;:[\&quot;0=Mujer\&quot;,\&quot;1=Varon\&quot;,\&quot;99=ns/nc\&quot;]}&quot;
+my.options &lt;- unlist(fromJSON(my.tfd[which(my.tfd$fieldId==9),&quot;options&quot;]))
+my.op.tmp &lt;- unlist(str_split(my.options, &quot;=&quot;))
+
+#head(my.df[,1:10])
+#length(colnames(my.df))
+#[1] 274
+#str(my.df[,&quot;Sexo -- 9&quot;])
+
+my.field.colname &lt;- &quot;Sexo -- 9&quot; # As a Column name of my.df
+my.field.name &lt;- unlist(str_split(my.field.colname, &quot; -- &quot;))[1]
+my.field.id &lt;- unlist(str_split(my.field.colname, &quot; -- &quot;))[2]
+my.field.data &lt;- as.numeric(my.df[,my.field.colname])
+
+#Recode something like 
+                  # &quot;0&quot;     &quot;Mujer&quot; &quot;1&quot;     &quot;Varon&quot; &quot;99&quot;    &quot;ns/nc&quot;
+                  # into something like:
+                  # &quot;Mujer&quot; = 0, &quot;Varon&quot; = 1, &quot;ns/nc&quot; = 99
+cc &lt;- 0 # loop counter
+my.options &lt;- NULL
+my.op.tmp.number &lt;- NULL
+my.op.tmp.label &lt;- NULL
+# We generate two clean vectors with the information of the numbers (option values in the form)
+# and the corresponding labels shown in the form, for further merging of the information 
+# in the memisc::as.item function.
+for (ii in seq(1, length(my.op.tmp), by=2)) {
+  cc &lt;- cc+1
+  my.op.tmp.number[cc] &lt;- my.op.tmp[ii] 
+  my.op.tmp.label[cc]  &lt;- my.op.tmp[ii+1]
+}
+
+#my.op.tmp.number # Clea vector of numbers (options in the form)
+#my.op.tmp.label # Clean vector of labels corresponding to the previous options
+
+# If we were to do it by hand we would do it like this:
+#memisc::labels(my.field.data) &lt;- c(&quot;Mujer&quot; = 0,
+#                           &quot;Varon&quot; = 1,
+#                           &quot;ns/nc&quot; = 99)
+# However, with standard &quot;assign&quot; or &quot;factor&quot; or equivalent functions, it doesn't work:
+#memisc::labels(my.field.data) &lt;- c(&quot;\&quot;Mujer\&quot;&quot; = 0,  &quot;\&quot;Varon\&quot;&quot; = 1,  &quot;\&quot;ns/nc\&quot;&quot; = 99)
+
+# Therefore we need to use the memisc:as.item function to properly merge all the required info in place
+my.options &lt;- as.item(my.field.data, 
+                      labels=structure(my.op.tmp.number, 
+                                       names=my.op.tmp.label),
+                      missing.values=99,
+                      annotation = c(
+                        description=my.field.name
+                        )
+                      )
+memisc::labels(my.options)</code></pre>
+<pre><code>## 
+##  Values and labels:
+## 
+##     0 'Mujer'
+##     1 'Varon'
+##    99 'ns/nc'</code></pre>
+<pre class="r"><code>class(my.field.data)</code></pre>
+<pre><code>## [1] &quot;numeric&quot;</code></pre>
+</div>
+<div id="convert-the-tracker-data-to-data.set-for-package-memisc" class="section level1">
+<h1>Convert the tracker data to data.set for package memisc</h1>
+<pre class="r"><code># Our data is still stored as a matrix.
+#class(my.df.c)
+
+# Therefore we need to convert the clean matrix of data, into a data.frame, and convert it to class data.set from package memisc
+my.ds &lt;- as.data.set(data.frame(my.df.c)) 
+class(my.ds)</code></pre>
+<pre><code>## [1] &quot;data.set&quot;
+## attr(,&quot;package&quot;)
+## [1] &quot;memisc&quot;</code></pre>
+</div>
+<div id="create-codebook-optional" class="section level1">
+<h1>Create Codebook (optional)</h1>
+<pre class="r"><code># CodeBooks
+# ----------
+# Add here the commands to create a codebook from memisc, in case we need it. But since we don't, it seems, then we skip this part, for the time being.</code></pre>
+</div>
+<div id="some-ways-to-make-descriptive-statistics" class="section level1">
+<h1>Some ways to make descriptive statistics</h1>
+<pre class="r"><code># See http://r-es.org/7jornadasR/ponencias/jose_ignacio_casas.pdf (Slide 21 onwards)
+dim(my.t.fieldIds)</code></pre>
+<pre><code>## [1] 274   1</code></pre>
 <pre class="r"><code>#description(my.df[,1:10])
 # Try some packaages for a basic descriptive statistics out of some data set
 #
@@ -208,14 +485,6 @@ head(my.df[,1:10])</code></pre>
 # Handling of values and labels:
 # http://www.elff.eu/memisc/items/
 ## SEE: http://www.elff.eu/memisc/items/#codebooks-of-survey-items
-
-
-# And set that tracker id to allow registered to export tracker items
-#colnames(my.df) &lt;- c(&quot;f_9&quot;, &quot;f_10&quot;, &quot;f_11&quot;)
-#unlist(str_split(colnames(my.df), &quot;\\.&quot;))[1]
-#str_split(colnames(my.df), &quot;\\.&quot;)[[1]][1] # field name from f_9 in this example
-#str_split(colnames(my.df), &quot;\\.&quot;)[[2]][1] # field name from f_10 in this example
-#str_split(colnames(my.df), &quot;\\.&quot;)[[3]][1] # field name from f_11 in this example
 
 
 #install.packages(&quot;sjPlot&quot;)
@@ -293,25 +562,26 @@ cat(&quot;Sys.info() : \n&quot;)</code></pre>
 ## [1] stats     graphics  grDevices utils     datasets  methods   base     
 ## 
 ## other attached packages:
-##  [1] memisc_0.99.3.3  MASS_7.3-45      lattice_0.20-33  data.table_1.9.6
-##  [5] stringr_1.0.0    stringi_1.0-1    httr_1.0.0       ggplot2_2.0.0   
-##  [9] sjmisc_1.4       sjPlot_1.8.4     devtools_1.9.1   rCharts_0.4.5   
+##  [1] memisc_0.99.3.3  MASS_7.3-45      lattice_0.20-33  jsonlite_0.9.19 
+##  [5] RMySQL_0.10.7    DBI_0.3.1        data.table_1.9.6 stringr_1.0.0   
+##  [9] stringi_1.0-1    httr_1.0.0       ggplot2_2.0.0    sjmisc_1.4      
+## [13] sjPlot_1.8.4     devtools_1.9.1   rCharts_0.4.5   
 ## 
 ## loaded via a namespace (and not attached):
 ##  [1] Rcpp_0.12.2        formatR_1.2.1      nloptr_1.0.4      
 ##  [4] plyr_1.8.3         tools_3.2.3        digest_0.6.8      
 ##  [7] lme4_1.1-10        evaluate_0.8       memoise_0.2.1     
 ## [10] gtable_0.1.2       nlme_3.1-122       mgcv_1.8-10       
-## [13] psych_1.5.8        Matrix_1.2-3       DBI_0.3.1         
-## [16] curl_0.9.4         yaml_2.1.13        parallel_3.2.3    
-## [19] SparseM_1.7        dplyr_0.4.3        knitr_1.11        
-## [22] MatrixModels_0.4-1 grid_3.2.3         nnet_7.3-11       
-## [25] R6_2.1.1           rmarkdown_0.9      RJSONIO_1.3-0     
-## [28] minqa_1.2.4        tidyr_0.4.0        car_2.1-1         
-## [31] magrittr_1.5       whisker_0.3-2      scales_0.3.0      
-## [34] htmltools_0.3      splines_3.2.3      mnormt_1.5-3      
-## [37] assertthat_0.1     pbkrtest_0.4-5     colorspace_1.2-6  
-## [40] quantreg_5.19      munsell_0.4.2      chron_2.3-47</code></pre>
+## [13] psych_1.5.8        Matrix_1.2-3       curl_0.9.4        
+## [16] yaml_2.1.13        parallel_3.2.3     SparseM_1.7       
+## [19] dplyr_0.4.3        knitr_1.11         MatrixModels_0.4-1
+## [22] grid_3.2.3         nnet_7.3-11        R6_2.1.1          
+## [25] rmarkdown_0.9      RJSONIO_1.3-0      minqa_1.2.4       
+## [28] tidyr_0.4.0        car_2.1-1          magrittr_1.5      
+## [31] whisker_0.3-2      scales_0.3.0       htmltools_0.3     
+## [34] splines_3.2.3      mnormt_1.5-3       assertthat_0.1    
+## [37] pbkrtest_0.4-5     colorspace_1.2-6   quantreg_5.19     
+## [40] munsell_0.4.2      chron_2.3-47</code></pre>
 <pre class="r"><code>sink()</code></pre>
 </div>
 
