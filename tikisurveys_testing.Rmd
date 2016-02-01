@@ -234,6 +234,18 @@ class(my.field.data)
 # Therefore we need to convert the clean matrix of data, into a data.frame, and convert it to class data.set from package memisc
 my.ds <- as.data.set(data.frame(my.df.c)) 
 class(my.ds)
+```
+
+# Produce some description out of the data
+
+```{r Produce some description out of the data}
+require(sjmisc)
+require(sjPlot)
+view_df(data.frame(my.df.c))
+#view_df(data.frame(my.df.c), showFreq = TRUE, showPerc = TRUE) #  # As before, but with frequencies and percentages (as a "codebook")
+
+sjt.frq (data.frame(my.df.c)[,10]) # For one variable
+
 
 ```
 
