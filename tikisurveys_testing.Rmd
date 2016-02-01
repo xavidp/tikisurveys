@@ -117,7 +117,7 @@ head(my.df[,1:10])
 We apply an "apply" function to the whole data frame just for the sake of practising with the apply function itself, since the gsub would do it on the 2nd column, which is the only one selfnumbered which carries this html markup to show the "#" sign in front of it, as defined in teh Tracker Field definition.
 
 ```{r massage and cleanup the dataset, echo=TRUE}
-gsub("<span class='formunit'>#</span>", "", my.df[1,2], fixed=T)
+#gsub("<span class='formunit'>#</span>", "", my.df[1,2], fixed=T)
 my.df.c <- apply(my.df, 2, gsub, pattern="<span class='formunit'>#</span>", replacement="", fixed=T)
 my.df.c[,1:10]
 
@@ -222,7 +222,111 @@ my.options <- as.item(my.field.data,
                       )
 memisc::labels(my.options)
 
+view_df(data.frame(my.options))
+
 class(my.field.data)
+```
+
+# Loop to add value/label pairs to all variables where needed
+
+```{r Loop to add value/label pairs to all variables where needed}
+# Have a look at the columns and some of their values of the tracker field definitions (my.tfd)
+head(my.tfd)
+
+# > table(my.tfd$type)
+# 
+#    a    C    d    D    f    h    M math    n    q    R    t    u 
+#    1    5   26    1   21   47   13    1   42    1   80   35    1
+# Tracker field Codes that contain value=label pairs
+#Sys.getlocale()
+Sys.setlocale('LC_ALL','C') # Needed to avoid this warning message: "input string 90 is invalid in this locale", etc. Adn this line had this code: "1=S\xed\" (meaning "1=Sí").
+#my.tfd$options[90]
+table(my.tfd[grep("options", my.tfd$options, fixed=TRUE),"type"])
+#  D  M  R  d 
+#  1 13 80 26 
+#
+# D: Dropdown with other
+# M: Multiselect
+# R: Radio button
+# d: dropdown
+#
+# See this page to check their correspondence
+# https://dev.tiki.org/Tracker+Field+Types
+
+# Special handling will be needed also for field type:
+# f: Date and Time
+
+# FROM TRACKER FIELD DEFINITION
+# Indexes of the data frame that correspond to fields which contain value:label pairs (as options)
+fields.with.options.idx <- grep("options", my.tfd$options, fixed=TRUE)
+  #head(my.tfd[fields.with.options.idx,])
+  #head(my.tfd[fields.with.options.idx, c("type","options")])
+# FieldId's for those cases of tracker fields (fields which contain value:label pairs, as options)
+fields.with.options.fieldId <- my.tfd[fields.with.options.idx,"fieldId"]
+
+# FROM TRACKER DATA
+# Get the column numbers of the variables that contain data that needs to be labelled properly
+# Identify the data columns that require value:label pair fixing
+#head(my.df.c)
+
+for (ff in 1:length(fields.with.options.fieldId)) {
+  #ff <- 61
+  
+  # Report progress
+  cat(paste0(" (", ff, "/", length(fields.with.options.fieldId), ")", " Processing fieldId: ", fields.with.options.fieldId[ff], "\n"))
+
+  # Get the options for that field
+  my.options <- unlist(fromJSON(my.tfd[which(my.tfd$fieldId==fields.with.options.fieldId[ff]),
+                                       "options"]
+                                )
+                       )
+  # Split the options in chunks
+  my.op.tmp <- unlist(str_split(my.options, "="))
+  
+  # Get the field name
+  my.tfd[which(my.tfd["fieldId"]==fields.with.options.fieldId[ff]), "name"]
+  
+  my.df.c.col.idx <- grep(paste0("-- ", fields.with.options.fieldId[ff], "$"), colnames(my.df.c), fixed=FALSE)
+  
+  #my.df.c <- data.frame(my.df.c)
+  my.df.c[,my.df.c.col.idx]
+  
+  my.field.colname <- colnames(my.df.c)[my.df.c.col.idx] # "Sexo -- 9" # As a Column name of my.df
+  my.field.name <- unlist(str_split(my.field.colname, " -- "))[1]
+  my.field.id <- unlist(str_split(my.field.colname, " -- "))[2]
+  my.field.data <- as.numeric(my.df[,my.field.colname])
+
+  #Recode something like 
+                    # "0"     "Mujer" "1"     "Varon" "99"    "ns/nc"
+                    # into something like:
+                    # "Mujer" = 0, "Varon" = 1, "ns/nc" = 99
+  cc <- 0 # loop counter
+  my.options <- NULL
+  my.op.tmp.number <- NULL
+  my.op.tmp.label <- NULL
+  # We generate two clean vectors with the information of the numbers (option values in the form)
+  # and the corresponding labels shown in the form, for further merging of the information 
+  # in the memisc::as.item function.
+  for (ii in seq(1, length(my.op.tmp), by=2)) {
+    cc <- cc+1
+    my.op.tmp.number[cc] <- my.op.tmp[ii] 
+    my.op.tmp.label[cc]  <- my.op.tmp[ii+1]
+  }
+  
+  # Therefore we need to use the memisc:as.item function to properly merge all the required info in place
+  my.df.c[,my.field.colname] <- as.item(my.df.c[,my.field.colname], 
+                                    labels=structure(my.op.tmp.number, 
+                                                     names=my.op.tmp.label),
+                                    missing.values=99,
+                                    annotation = c(
+                                      description=my.field.name
+                                      )
+                                    )
+   #head(my.df.c)
+  
+}
+ str(my.df.c)
+
 ```
 
 # Convert the tracker data to data.set for package memisc
@@ -243,9 +347,19 @@ require(sjmisc)
 require(sjPlot)
 view_df(data.frame(my.df.c))
 #view_df(data.frame(my.df.c), showFreq = TRUE, showPerc = TRUE) #  # As before, but with frequencies and percentages (as a "codebook")
+view_df(data.frame(my.ds))
+#view_df(data.frame(my.ds), showFreq = TRUE, showPerc = TRUE) #  # As before, but with frequencies and percentages (as a "codebook")
 
-sjt.frq (data.frame(my.df.c)[,10]) # For one variable
+sjt.frq (data.frame(my.df.c)[,10]) # For one variable, such as "Sexo -- 9", which is #10 here.
 
+```
+
+# Tweak data and labels through GUI (Optional)
+
+
+```{r Tweak data and labels through GUI (Optional)}
+require(Rz)
+Rz()
 
 ```
 
