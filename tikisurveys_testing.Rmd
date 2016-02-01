@@ -146,9 +146,11 @@ dim(my.t)
 # [1] 274  23
 
 my.tfd <- base::subset(my.t, trackerId == myTrackerId) # My Tracker Fields Definition
-dim(my.tfd)
-head(my.tfd)
-my.t.fieldIds = dbGetQuery(con, paste0("SELECT DISTINCT fieldId FROM ", myTikiTable))
+#dim(my.tfd)
+#head(my.tfd)
+
+# You might want to Check that there are not duplicataed field definitions
+#my.t.fieldIds = dbGetQuery(con, paste0("SELECT DISTINCT fieldId FROM ", myTikiTable))
 
 # Test displaying as dataframe some json-encoded data from a radio button field definition
 # For instance, field 281 (raw 1 in the my.tt df) "AnoxToxMet. RNM":
@@ -166,7 +168,6 @@ fromJSON(my.tt[1,"options"])
 my.options <- unlist(fromJSON(my.tfd[which(my.tfd$fieldId==9),"options"]))
 my.op.tmp <- unlist(str_split(my.options, "="))
 
-
 #head(my.df[,1:10])
 #length(colnames(my.df))
 #[1] 274
@@ -177,50 +178,58 @@ my.field.name <- unlist(str_split(my.field.colname, " -- "))[1]
 my.field.id <- unlist(str_split(my.field.colname, " -- "))[2]
 my.field.data <- as.numeric(my.df[,my.field.colname])
 
-cc <- 0 # loop counter
 #Recode something like 
                   # "0"     "Mujer" "1"     "Varon" "99"    "ns/nc"
                   # into something like:
                   # "Mujer" = 0, "Varon" = 1, "ns/nc" = 99
-                  my.options <- NULL
-                  for (ii in seq(1, length(my.op.tmp), by=2)) {
-                    # ii <- 1
-                    cc <- cc+1
-                    my.options[cc] <- my.op.tmp[ii+1]
-                    assign(my.options[cc], as.factor(my.op.tmp[ii]))
-#                    memisc::labels(my.field.data) <- c(memisc::labels(my.field.data),
-#                                                       my.op.tmp[ii+1])
-#                      my.options <- paste0("\"", my.op.tmp[ii+1], "\" = ", as.numeric(my.op.tmp[ii]))
+cc <- 0 # loop counter
+my.options <- NULL
+my.op.tmp.number <- NULL
+my.op.tmp.label <- NULL
+# We generate two clean vectors with the information of the numbers (option values in the form)
+# and the corresponding labels shown in the form, for further merging of the information 
+# in the memisc::as.item function.
+for (ii in seq(1, length(my.op.tmp), by=2)) {
+  cc <- cc+1
+  my.op.tmp.number[cc] <- my.op.tmp[ii] 
+  my.op.tmp.label[cc]  <- my.op.tmp[ii+1]
+}
 
-                  }
-memisc::labels(my.field.data) <- labels(my.options)
-memisc::labels(my.options)
-memisc::labels(my.field.data)
-                  #  print(my.options)
-#memisc::labels(my.field.data) <- eval(parse(text =my.options))
-#class(my.options)
-#length(my.options)
-rm(my.field.data)
+#my.op.tmp.number # Clea vector of numbers (options in the form)
+#my.op.tmp.label # Clean vector of labels corresponding to the previous options
 
-c("\"Mujer\"" = 0,  "\"Varon\"" = 1,  "\"ns/nc\"" = 99)
-memisc::labels(my.field.data) <- c("Mujer" = 0,
-                           "Varon" = 1,
-                           "ns/nc" = 99)
-labels(my.field.data)
-x <- as.item(my.df[,my.field],
-             labels=c(
-                 paste(my.options, collapse=",")
-               ),
-             missing.values=99,
-             annotation = c(
-               description=my.field.name
-               )
-             )
-str(x)
+# If we were to do it by hand we would do it like this:
+#memisc::labels(my.field.data) <- c("Mujer" = 0,
+#                           "Varon" = 1,
+#                           "ns/nc" = 99)
+# However, with standard "assign" or "factor" or equivalent functions, it doesn't work:
+#memisc::labels(my.field.data) <- c("\"Mujer\"" = 0,  "\"Varon\"" = 1,  "\"ns/nc\"" = 99)
+
+# Therefore we need to use the memisc:as.item function to properly merge all the required info in place
+my.options <- as.item(my.field.data, 
+                      labels=structure(my.op.tmp.number, 
+                                       names=my.op.tmp.label),
+                      missing.values=99,
+                      annotation = c(
+                        description=my.field.name
+                        )
+                      )
+#memisc::labels(my.options)
+class(my.field.data)
+
+# Our data is still stored as a matrix.
+#class(my.df.c)
+
+# Therefore we need to convert the clean matrix of data, into a data.frame, and convert it to class data.set from package memisc
+my.ds <- as.data.set(data.frame(my.df.c)) 
+#class(my.ds)
+
 
 # CodeBooks
 # ----------
-# Add here the commands to create a codebook from memisc
+# Add here the commands to create a codebook from memisc, in case we need it. But since we don't, it seems, then we skip this part, for the time being.
+
+
 # See http://r-es.org/7jornadasR/ponencias/jose_ignacio_casas.pdf (Slide 21 onwards)
 dim(my.t.fieldIds)
 
