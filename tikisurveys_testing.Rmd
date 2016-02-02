@@ -36,6 +36,7 @@ if( any(!pBIOC %in% rownames(installed.packages())) ){
 
 # Names of packages to be installed from CRAN if not present yet in this machine
 pCRAN <- c("devtools",
+           "scales",
            "sjPlot",
            "sjmisc",
            "ggplot2",
@@ -45,6 +46,7 @@ pCRAN <- c("devtools",
            "data.table",
            "RMySQL",
            "jsonlite",
+           "readr",
            "memisc")
 
 if( any(!pCRAN %in% rownames(installed.packages())) ){
@@ -109,7 +111,10 @@ bin <- httr::content(my.c, "raw")
 my.tracker.file <- paste0("tracker_", my.trackerId,"_", format(Sys.Date(), "%y%m%d"),".csv")
 writeBin(bin, file.path(getwd(), my.tracker.file))
 
-my.df <- fread(file.path(getwd(), my.tracker.file), stringsAsFactors=FALSE, data.table=F)
+#my.df <- fread(file.path(getwd(), my.tracker.file), stringsAsFactors=FALSE, data.table=F)
+# Replace data.table::fread efficient function with readr::read_csv, which self recognizes data types, while standard read.csv or fread does not. 
+my.df <- readr::read_csv(file.path(getwd(), my.tracker.file))
+#str(my.df)
 head(my.df[,1:10])
 ```
 
@@ -117,31 +122,23 @@ head(my.df[,1:10])
 We apply an "apply" function to the whole data frame just for the sake of practising with the apply function itself, since the gsub would do it on the 2nd column, which is the only one selfnumbered which carries this html markup to show the "#" sign in front of it, as defined in teh Tracker Field definition.
 
 ```{r massage and cleanup the dataset, echo=TRUE}
-#gsub("<span class='formunit'>#</span>", "", my.df[1,2], fixed=T)
-my.df.c <- apply(my.df, 2, gsub, pattern="<span class='formunit'>#</span>", replacement="", fixed=T)
+Sys.setlocale('LC_ALL','C') # Needed to avoid this warning message: "input string 90 is invalid in this locale", etc. Adn this line had this code: "1=S\xed\" (meaning "1=Sí").
+
+#class(gsub("<span class='formunit'>#</span>", "", my.df[,2], fixed=T))
+#my.df[,2] <- gsub("<span class='formunit'>#</span>", "", my.df[,2], fixed=T)
+#my.df[,2] <- str_replace_all(my.df[,2], "<span class='formunit'>#</span>", "")
+
+#my.df.c <- apply(my.df, 2, gsub, pattern="<span class='formunit'>#</span>", replacement="", fixed=T)
+my.df.c <- my.df
 my.df.c[,1:10]
-# Clean the Tracker field definition also for weirdnesses
-#my.tfd2 <- apply(my.tfd, 2, gsub, pattern="S<U+00CD>", replacement="Sí", fixed=T)
-my.tfd2 <- apply(my.tfd, 2, gsub, pattern="S\\u00cd", replacement="Si", fixed=T)
-head(my.tfd2[,1:10])
-#class(my.df.c) # It's been converted into a matrix!
+str(my.df.c)
 # Convert back the object to a data.frame
-my.df.c <- data.frame(my.df.c) #
-my.tfd <- data.frame(my.tfd) #
-my.tfd2 <- data.frame(my.tfd2) #
+#my.df.c <- data.frame(my.df.c, stringsAsFactors = FALSE) #
+#str(my.df.c)
 
 # Search for data for fieldId 549 in the my.df (Dataframe with data)
-grep("549", colnames(my.df.c))
-my.df[,202]
-colnames(my.df)[202]
-
-# Search for data for fieldId 549 in the my.tfd (Dataframe with the tracker field definition)
-grep("549", my.tfd$fieldId)
-my.tfd[9,]
-grep("549", my.tfd2$fieldId)
-my.tfd2[9,]
-
-
+#my.df[,grep("549", colnames(my.df.c))]
+#colnames(my.df)[grep("549", colnames(my.df.c))]
 
 ```
 
@@ -171,29 +168,38 @@ dim(my.t)
 my.tfd <- base::subset(my.t, trackerId == myTrackerId) # My Tracker Fields Definition
 #dim(my.tfd)
 #head(my.tfd)
+#str(my.tfd)
 
 # You might want to Check that there are not duplicataed field definitions
 #my.t.fieldIds = dbGetQuery(con, paste0("SELECT DISTINCT fieldId FROM ", myTikiTable))
+
+# Clean the Tracker field definition also for weirdnesses
+#my.tfd <- apply(my.tfd, 2, gsub, pattern="S\\u00cd", replacement="Si", fixed=T)
+#my.tfd <- apply(my.tfd, 2, gsub, pattern="S\\u00ed", replacement="Si", fixed=T)
+#head(my.tfd[,1:10])
+#class(my.df.c) # It's been converted into a matrix!
+# Convert back the object to a data.frame
+#my.tfd <- data.frame(my.tfd, stringsAsFactors = FALSE) #
+# Search for data for fieldId 549 in the my.tfd (Dataframe with the tracker field definition)
+#my.tfd[grep("549", my.tfd$fieldId),]
 
 # Disconnect from the MySQL connection
 dbDisconnect(con)
 ```
 
-```{r Test the display for a couple of radio button fields}
+# Test the display for a radio button field
+
+```{r Test the display for a radio button field}
 # Test displaying as dataframe some json-encoded data from a radio button field definition
-# For instance, field 281 (raw 1 in the my.tt df) "AnoxToxMet. RNM":
-my.tfd[1,"options"]
-#[1] "{\"options\":[\"0=Normal\",\"1=Anormal\"]}"
-fromJSON(my.tfd[1,"options"])
-#$options
-#[1] "0=Normal"  "1=Anormal"
 
 # Display with row from the my.tt df object contains the values for the definition of fieldId 9 (Sexo -- 9)
 #which(my.tfd$fieldId==9)
 # [1] 135
 #my.tfd[which(my.tfd$fieldId==9),"options"]
 # [1] "{\"options\":[\"0=Mujer\",\"1=Varon\",\"99=ns/nc\"]}"
-my.options <- unlist(fromJSON(my.tfd[which(my.tfd$fieldId==9),"options"]))
+#table(as.numeric(my.tfd$fieldId)==9)
+#class(my.tfd$fieldId)
+my.options <- unlist(fromJSON(as.character(my.tfd[which(as.numeric(my.tfd$fieldId)==9),"options"])))
 my.op.tmp <- unlist(str_split(my.options, "="))
 
 #head(my.df[,1:10])
@@ -204,7 +210,7 @@ my.op.tmp <- unlist(str_split(my.options, "="))
 my.field.colname <- "Sexo -- 9" # As a Column name of my.df
 my.field.name <- unlist(str_split(my.field.colname, " -- "))[1]
 my.field.id <- unlist(str_split(my.field.colname, " -- "))[2]
-my.field.data <- as.numeric(my.df[,my.field.colname])
+my.field.data <- my.df[,my.field.colname]
 
 #Recode something like 
                   # "0"     "Mujer" "1"     "Varon" "99"    "ns/nc"
@@ -300,16 +306,14 @@ for (ff in 1:length(fields.with.options.fieldId)) {
   cat(paste0(" (", ff, "/", length(fields.with.options.fieldId), ")", " Processing fieldId: ", fields.with.options.fieldId[ff], "\n"))
 
   # Get the options for that field
-  my.options <- unlist(fromJSON(my.tfd[which(my.tfd$fieldId==fields.with.options.fieldId[ff]),
-                                       "options"]
-                                )
-                       )
+  my.options <- unlist(fromJSON(as.character(my.tfd[which(as.numeric(my.tfd$fieldId)==as.numeric(fields.with.options.fieldId[ff])),"options"])))
   # Split the options in chunks
   my.op.tmp <- unlist(str_split(my.options, "="))
   
   # Get the field name
-  my.tfd[which(my.tfd["fieldId"]==fields.with.options.fieldId[ff]), "name"]
-  
+  my.tfd[which(my.tfd["fieldId"]==as.numeric(fields.with.options.fieldId[ff])), "name"]
+  #head(my.tfd)
+  #str(my.tfd)
   my.df.c.col.idx <- grep(paste0("-- ", fields.with.options.fieldId[ff], "$"), colnames(my.df.c), fixed=FALSE)
   
   #my.df.c <- data.frame(my.df.c)
