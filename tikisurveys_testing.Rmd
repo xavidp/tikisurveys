@@ -16,6 +16,7 @@ http://files.meetup.com/1781511/useR%20Vignette%20-%20Accessing%20Databases%20fr
 ## Install packages
 
 ```{r Install packages, echo=FALSE}
+Sys.setenv(GIT_ASKPASS=Sys.getenv("SSH_ASKPASS"))
 #############################
 # Package dependencies
 #############################
