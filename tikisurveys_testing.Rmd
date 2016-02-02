@@ -162,7 +162,7 @@ dbDisconnect(con)
 # For instance, field 281 (raw 1 in the my.tt df) "AnoxToxMet. RNM":
 my.tfd[1,"options"]
 #[1] "{\"options\":[\"0=Normal\",\"1=Anormal\"]}"
-fromJSON(my.tt[1,"options"])
+fromJSON(my.tfd[1,"options"])
 #$options
 #[1] "0=Normal"  "1=Anormal"
 
@@ -429,7 +429,11 @@ cotxes
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
 ```{r Store objects into an Rda, echo=FALSE}
-save(my.df,
+save(my.c,
+     my.df,
+     my.df.c,
+     my.tfd,
+     my.tracker.file,
      my.ds,
      file=my.rda)
 ```
