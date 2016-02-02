@@ -120,6 +120,28 @@ We apply an "apply" function to the whole data frame just for the sake of practi
 #gsub("<span class='formunit'>#</span>", "", my.df[1,2], fixed=T)
 my.df.c <- apply(my.df, 2, gsub, pattern="<span class='formunit'>#</span>", replacement="", fixed=T)
 my.df.c[,1:10]
+# Clean the Tracker field definition also for weirdnesses
+#my.tfd2 <- apply(my.tfd, 2, gsub, pattern="S<U+00CD>", replacement="Sí", fixed=T)
+my.tfd2 <- apply(my.tfd, 2, gsub, pattern="S\\u00cd", replacement="Si", fixed=T)
+head(my.tfd2[,1:10])
+#class(my.df.c) # It's been converted into a matrix!
+# Convert back the object to a data.frame
+my.df.c <- data.frame(my.df.c) #
+my.tfd <- data.frame(my.tfd) #
+my.tfd2 <- data.frame(my.tfd2) #
+
+# Search for data for fieldId 549 in the my.df (Dataframe with data)
+grep("549", colnames(my.df.c))
+my.df[,202]
+colnames(my.df)[202]
+
+# Search for data for fieldId 549 in the my.tfd (Dataframe with the tracker field definition)
+grep("549", my.tfd$fieldId)
+my.tfd[9,]
+grep("549", my.tfd2$fieldId)
+my.tfd2[9,]
+
+
 
 ```
 
@@ -223,8 +245,8 @@ my.field.labels <- as.item(my.field.data,
 memisc::labels(my.field.labels)
 
 view_df(data.frame(my.field.data))
-my.field.data <- set_val_labels(my.field.data, memisc::labels(my.field.labels))
-get_val_labels(my.field.data, include.values = T)
+my.field.data <- set_labels(my.field.data, memisc::labels(my.field.labels))
+get_labels(my.field.data, include.values = T)
 view_df(data.frame(my.field.data))
 
 ```
@@ -272,7 +294,7 @@ fields.with.options.fieldId <- my.tfd[fields.with.options.idx,"fieldId"]
 #head(my.df.c)
 
 for (ff in 1:length(fields.with.options.fieldId)) {
-  #ff <- 61
+  #ff <- 61; ff <- 1 # f_id 281; ff <- 2 # f_id 280; ff <- 3 # f_id 270...; ff <- 5 # f_id 549 
   
   # Report progress
   cat(paste0(" (", ff, "/", length(fields.with.options.fieldId), ")", " Processing fieldId: ", fields.with.options.fieldId[ff], "\n"))
@@ -331,9 +353,9 @@ for (ff in 1:length(fields.with.options.fieldId)) {
   # Convert values from char to numeric class
   #my.df.c[,my.field.colname] <- as.numeric(my.df.c[,my.field.colname])
           
-  my.field.data.sj <- set_val_labels(my.field.data,
+  my.field.data.sj <- set_labels(my.field.data,
                                                memisc::labels(my.field.data.labels))
-  # Set also labels in the format expected by sjmisc with set_val_labels()
+  # Set also labels in the format expected by sjmisc with set_labels()
 
   #head(my.df.c[,my.field.colname])
 
@@ -437,7 +459,7 @@ cotxes
 #sjp.frq(cotxes$marca)
 #str(my.df)
 #sjp.frq(my.df[,1]) # this fails for unknown reason
-#my.df <- set_val_labels(my.df, c(str_split(colnames(my.df), "\\.")[[1]][1],
+#my.df <- set_labels(my.df, c(str_split(colnames(my.df), "\\.")[[1]][1],
 #                                 str_split(colnames(my.df), "\\.")[[2]][1],
 #                                 str_split(colnames(my.df), "\\.")[[3]][1]))
 ```
