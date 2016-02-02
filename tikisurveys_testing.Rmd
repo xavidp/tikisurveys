@@ -212,7 +212,7 @@ for (ii in seq(1, length(my.op.tmp), by=2)) {
 #memisc::labels(my.field.data) <- c("\"Mujer\"" = 0,  "\"Varon\"" = 1,  "\"ns/nc\"" = 99)
 
 # Therefore we need to use the memisc:as.item function to properly merge all the required info in place
-my.options <- as.item(my.field.data, 
+my.field.labels <- as.item(my.field.data, 
                       labels=structure(my.op.tmp.number, 
                                        names=my.op.tmp.label),
                       missing.values=99,
@@ -220,11 +220,13 @@ my.options <- as.item(my.field.data,
                         description=my.field.name
                         )
                       )
-memisc::labels(my.options)
+memisc::labels(my.field.labels)
 
-view_df(data.frame(my.options))
+view_df(data.frame(my.field.data))
+my.field.data <- set_val_labels(my.field.data, memisc::labels(my.field.labels))
+get_val_labels(my.field.data, include.values = T)
+view_df(data.frame(my.field.data))
 
-class(my.field.data)
 ```
 
 # Loop to add value/label pairs to all variables where needed
@@ -289,7 +291,7 @@ for (ff in 1:length(fields.with.options.fieldId)) {
   my.df.c.col.idx <- grep(paste0("-- ", fields.with.options.fieldId[ff], "$"), colnames(my.df.c), fixed=FALSE)
   
   #my.df.c <- data.frame(my.df.c)
-  my.df.c[,my.df.c.col.idx]
+  #my.df.c[,my.df.c.col.idx]
   
   my.field.colname <- colnames(my.df.c)[my.df.c.col.idx] # "Sexo -- 9" # As a Column name of my.df
   my.field.name <- unlist(str_split(my.field.colname, " -- "))[1]
@@ -314,7 +316,7 @@ for (ff in 1:length(fields.with.options.fieldId)) {
   }
   
   # Therefore we need to use the memisc:as.item function to properly merge all the required info in place
-  my.df.c[,my.field.colname] <- as.item(my.df.c[,my.field.colname], 
+  my.field.data.labels <- as.item(my.field.data, 
                                     labels=structure(my.op.tmp.number, 
                                                      names=my.op.tmp.label),
                                     missing.values=99,
@@ -322,10 +324,24 @@ for (ff in 1:length(fields.with.options.fieldId)) {
                                       description=my.field.name
                                       )
                                     )
-   #head(my.df.c)
+  # class(my.df.c[,my.field.colname])
+  #memisc::labels(my.df.c[,my.field.colname])
+  # class(my.field.data)
+  #memisc::labels(my.field.data)
+  # Convert values from char to numeric class
+  #my.df.c[,my.field.colname] <- as.numeric(my.df.c[,my.field.colname])
+          
+  my.field.data.sj <- set_val_labels(my.field.data,
+                                               memisc::labels(my.field.data.labels))
+  # Set also labels in the format expected by sjmisc with set_val_labels()
+
+  #head(my.df.c[,my.field.colname])
+
+  # view_df(data.frame(my.field.data.sj))
   
 }
  str(my.df.c)
+
 
 ```
 
