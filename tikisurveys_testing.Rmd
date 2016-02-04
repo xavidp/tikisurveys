@@ -13,8 +13,10 @@ Interesting Slides from a presentation in VII Jornades de Usuarios de R (R-es)
 See Presentation from:
 http://files.meetup.com/1781511/useR%20Vignette%20-%20Accessing%20Databases%20from%20R%20-%2020110504.pdf
 
+
 ## Install packages
 
+### R packages (from CRAN and eventually from Bioconductor)
 ```{r Install packages, echo=FALSE}
 Sys.setenv(GIT_ASKPASS=Sys.getenv("SSH_ASKPASS"))
 #############################
@@ -48,6 +50,7 @@ pCRAN <- c("devtools",
            "RMySQL",
            "jsonlite",
            "readr",
+           "dplyr",
            "memisc")
 
 if( any(!pCRAN %in% rownames(installed.packages())) ){
@@ -78,9 +81,9 @@ if (file.exists(file.path(getwd(), my.rda))) {
 }
 ```
 
-## Fetch data from the trasplantaments db
+## Fetch data from the trasplantaments db into a .csv file on disk
 
-```{r Fetch data from the trasplantaments db, echo=T}
+```{r Fetch data from the trasplantaments db into a .csv file on disk, echo=T}
 aID <- "TikiTrackerDB" # Analysis ID
 
 # If your tiki is not under localhost, adapt the path below for my.file
@@ -111,26 +114,30 @@ my.c.encoding
 bin <- httr::content(my.c, "raw")
 my.tracker.file <- paste0("tracker_", my.trackerId,"_", format(Sys.Date(), "%y%m%d"),".csv")
 writeBin(bin, file.path(getwd(), my.tracker.file))
+```
 
+## massage and cleanup the dataset
+We tried applying an "apply" function to the whole data frame just for the sake of practising with the apply function itself, since the gsub would do it on the 2nd column, which is the only one selfnumbered which carries this html markup to show the "#" sign in front of it, as defined in the Tracker Field definition. However, since the apply converts the dataframe into a matrix, and classes of the data.frme variables get lost, we avoid it, and we use a for loop and replace on site
+
+```{r massage and cleanup the dataset, echo=TRUE}
+Sys.setlocale('LC_ALL','C') # Needed to avoid this warning message: "input string 90 is invalid in this locale", etc. Adn this line had this code: "1=S\xed\" (meaning "1=Sí").
+
+# Read the dsv file
 #my.df <- fread(file.path(getwd(), my.tracker.file), stringsAsFactors=FALSE, data.table=F)
 # Replace data.table::fread efficient function with readr::read_csv, which self recognizes data types, while standard read.csv or fread does not. 
 my.df <- readr::read_csv(file.path(getwd(), my.tracker.file))
 #str(my.df)
 head(my.df[,1:10])
-```
-
-## massage and cleanup the dataset
-We apply an "apply" function to the whole data frame just for the sake of practising with the apply function itself, since the gsub would do it on the 2nd column, which is the only one selfnumbered which carries this html markup to show the "#" sign in front of it, as defined in teh Tracker Field definition.
-
-```{r massage and cleanup the dataset, echo=TRUE}
-Sys.setlocale('LC_ALL','C') # Needed to avoid this warning message: "input string 90 is invalid in this locale", etc. Adn this line had this code: "1=S\xed\" (meaning "1=Sí").
 
 #class(gsub("<span class='formunit'>#</span>", "", my.df[,2], fixed=T))
-#my.df[,2] <- gsub("<span class='formunit'>#</span>", "", my.df[,2], fixed=T)
+# Clean col 2 (self numbered column in Tiki with this annoying span html class)
+my.df[,2] <- gsub("<span class='formunit'>#</span>", "", my.df[,2], fixed=T)
 #my.df[,2] <- str_replace_all(my.df[,2], "<span class='formunit'>#</span>", "")
 
 #my.df.c <- apply(my.df, 2, gsub, pattern="<span class='formunit'>#</span>", replacement="", fixed=T)
-my.df.c <- my.df
+
+# Convert the tbl_df class from readr package into a standard data.frame class to avoid some issues later on of functions for other packages not expecting to work with such tbl_df class
+my.df.c <- as.data.frame(my.df)
 my.df.c[,1:10]
 str(my.df.c)
 # Convert back the object to a data.frame
@@ -174,18 +181,24 @@ my.tfd <- base::subset(my.t, trackerId == myTrackerId) # My Tracker Fields Defin
 # You might want to Check that there are not duplicataed field definitions
 #my.t.fieldIds = dbGetQuery(con, paste0("SELECT DISTINCT fieldId FROM ", myTikiTable))
 
-# Clean the Tracker field definition also for weirdnesses
-#my.tfd <- apply(my.tfd, 2, gsub, pattern="S\\u00cd", replacement="Si", fixed=T)
-#my.tfd <- apply(my.tfd, 2, gsub, pattern="S\\u00ed", replacement="Si", fixed=T)
-#head(my.tfd[,1:10])
-#class(my.df.c) # It's been converted into a matrix!
-# Convert back the object to a data.frame
-#my.tfd <- data.frame(my.tfd, stringsAsFactors = FALSE) #
-# Search for data for fieldId 549 in the my.tfd (Dataframe with the tracker field definition)
-#my.tfd[grep("549", my.tfd$fieldId),]
-
 # Disconnect from the MySQL connection
 dbDisconnect(con)
+```
+
+# Clean the Tracker field definition also for weirdnesses
+
+```{r Clean the Tracker field definition also for weirdnesses}
+
+# With a simple gsub over columns options
+##grep("S\\u00cd", my.tfd[,"options"], fixed=T)
+##grep("S\\u00ed", my.tfd[,"options"], fixed=T)
+my.tfd[,"options"] <- gsub("S\\u00cd", "Si", my.tfd[,"options"], fixed=T)
+my.tfd[,"options"] <- gsub("S\\u00ed", "Si", my.tfd[,"options"], fixed=T)
+
+# "Processing fieldId"
+
+#my.tfd <- apply(my.tfd, 2, gsub, pattern="S\\u00cd", replacement="Si", fixed=T)
+#my.tfd <- apply(my.tfd, 2, gsub, pattern="S\\u00ed", replacement="Si", fixed=T)
 ```
 
 # Test the display for a radio button field
@@ -211,7 +224,7 @@ my.op.tmp <- unlist(str_split(my.options, "="))
 my.field.colname <- "Sexo -- 9" # As a Column name of my.df
 my.field.name <- unlist(str_split(my.field.colname, " -- "))[1]
 my.field.id <- unlist(str_split(my.field.colname, " -- "))[2]
-my.field.data <- my.df[,my.field.colname]
+my.field.data <- as.data.frame(my.df.c[,my.field.colname])[,1]
 
 #Recode something like 
                   # "0"     "Mujer" "1"     "Varon" "99"    "ns/nc"
@@ -251,7 +264,7 @@ my.field.labels <- as.item(my.field.data,
                       )
 memisc::labels(my.field.labels)
 
-view_df(data.frame(my.field.data))
+view_df(as.data.frame(my.field.labels))
 my.field.data <- set_labels(my.field.data, memisc::labels(my.field.labels))
 get_labels(my.field.data, include.values = T)
 view_df(data.frame(my.field.data))
@@ -302,7 +315,7 @@ fields.with.options.fieldId <- my.tfd[fields.with.options.idx,"fieldId"]
 
 for (ff in 1:length(fields.with.options.fieldId)) {
   #ff <- 61; ff <- 1 # f_id 281; ff <- 2 # f_id 280; ff <- 3 # f_id 270...; ff <- 5 # f_id 549 
-  
+  # fields.with.options.idx[ff]
   # Report progress
   cat(paste0(" (", ff, "/", length(fields.with.options.fieldId), ")", " Processing fieldId: ", fields.with.options.fieldId[ff], "\n"))
 
@@ -323,7 +336,7 @@ for (ff in 1:length(fields.with.options.fieldId)) {
   my.field.colname <- colnames(my.df.c)[my.df.c.col.idx] # "Sexo -- 9" # As a Column name of my.df
   my.field.name <- unlist(str_split(my.field.colname, " -- "))[1]
   my.field.id <- unlist(str_split(my.field.colname, " -- "))[2]
-  my.field.data <- as.numeric(my.df[,my.field.colname])
+  my.field.data <- as.integer(my.df.c[,my.field.colname])
 
   #Recode something like 
                     # "0"     "Mujer" "1"     "Varon" "99"    "ns/nc"
@@ -342,32 +355,85 @@ for (ff in 1:length(fields.with.options.fieldId)) {
     my.op.tmp.label[cc]  <- my.op.tmp[ii+1]
   }
   
-  # Therefore we need to use the memisc:as.item function to properly merge all the required info in place
-  my.field.data.labels <- as.item(my.field.data, 
-                                    labels=structure(my.op.tmp.number, 
-                                                     names=my.op.tmp.label),
-                                    missing.values=99,
-                                    annotation = c(
-                                      description=my.field.name
-                                      )
-                                    )
-  # class(my.df.c[,my.field.colname])
-  #memisc::labels(my.df.c[,my.field.colname])
-  # class(my.field.data)
-  #memisc::labels(my.field.data)
-  # Convert values from char to numeric class
-  #my.df.c[,my.field.colname] <- as.numeric(my.df.c[,my.field.colname])
-          
-  my.field.data.sj <- set_labels(my.field.data,
-                                               memisc::labels(my.field.data.labels))
-  # Set also labels in the format expected by sjmisc with set_labels()
-
-  #head(my.df.c[,my.field.colname])
-
-  # view_df(data.frame(my.field.data.sj))
+  my.labels.df <- data.frame(as.numeric(my.op.tmp.number),
+                             as.character(my.op.tmp.label), stringsAsFactors=FALSE) 
+  colnames(my.labels.df) <- c("value", "label")
   
-}
- str(my.df.c)
+  #In case we have some data in this variable, set the labels for memisc and for sjmisc.
+  # Keep in mind that they are set in the different way, and that's why you need to do both things, depending on the extra steps needed, so that you can just call one (memisc) or the other (sjmisc) as needed. 
+  if (sum(as.numeric(as.character(my.field.data)), na.rm=T) > 0) {
+    # (1) MEMISC LABELS
+    # -----------------
+    # First, we need to use the memisc:as.item function to properly merge all the required info in place
+    my.field.data.labels.memisc <- as.item(my.field.data, 
+                                        labels=structure(my.op.tmp.number, 
+                                                         names=my.op.tmp.label),
+                                        missing.values=99,
+                                        annotation = c(
+                                          description=my.field.name
+                                          )
+                                        )
+    # We do not attempt to display html with labels-values since it fails with this label format
+    ##view_df(data.frame(my.field.data.labels.memisc))
+    ##sjmisc::get_labels(my.field.data.labels.memisc, include.values = T)
+
+    # Check labels
+    #memisc::labels(my.field.data.labels.memisc)
+      
+              
+    # (2a) Get a vector of labels as long as the vector of values
+    # -----------------
+    # Get a vector of labels as long as the vector of values, adn reuse it for sjmisc::set_labels
+    df1 <- data.frame(my.field.data)
+    colnames(df1) <-"value"
+    df2 <- my.labels.df
+    #class(df1)
+    #class(df2$value)
+#    merged.df <- merge(df1, df2, by = intersect(names(df1), names(df2)), all.x=T)
+     merged.df <- left_join(df1, df2, by = "value")
+   
+    # (2b) SJMISC LABELS
+    # -----------------
+    # Set also labels in the format expected by sjmisc with set_labels()
+#    my.field.data.labels.sjmisc <- set_labels(my.field.data,
+#                                              memisc::labels(my.field.data.labels.memisc))
+    my.field.data.labels.sjmisc <- set_labels(my.field.data,
+                                                merged.df$label)    
+
+     length(my.field.data)
+names(my.field.data)
+     length(labels(my.field.data))
+     length(labels(merged.df$label))
+     names(merged.df$label)
+#     length(memisc::labels(my.field.data.labels.memisc))
+#     class(my.field.data)
+#     class(base::labels(my.field.data.labels.memisc))
+#     class(memisc::labels(my.field.data.labels.memisc))
+#     
+    # Display html with variable and labels-values
+    #view_df(data.frame(my.field.data.labels.sjmisc))
+    # Check labels
+    #sjmisc::get_labels(my.field.data.labels.sjmisc, include.values = T, include.non.labelled = T)
+      #memisc::labels(my.field.data.labels.sjmisc)
+    
+    # (3) SET LABELS in DATA.FRAME VARIABLE
+    # -----------------
+    # Re-assign to the Dataframe with the clean data (my.df.c) that variable with the labels properly set
+    my.df.c[,my.df.c.col.idx] <- my.field.data.labels.sjmisc
+
+      
+  # Record on disk an html version of this varaible with labels.
+  view_df(as.data.frame(my.field.data.labels.sjmisc), file=paste0("view_df_ff", ff,
+                                                  "_fieldId", my.field.id,
+                                                  "_col", my.df.c.col.idx,
+                                                  "_", my.field.name,
+                                                  ".html") )
+  
+  } # Done setting labels to a variable with data to be labelled
+
+
+} # Done with this variable (ff - field with options - loop)
+ #str(my.df.c)
 
 
 ```
