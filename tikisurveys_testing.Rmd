@@ -379,7 +379,7 @@ for (ff in 1:length(fields.with.options.fieldId)) {
 
     # Check labels
     #memisc::labels(my.field.data.labels.memisc)
-      
+    
               
     # (2a) Get a vector of labels as long as the vector of values
     # -----------------
@@ -397,8 +397,8 @@ for (ff in 1:length(fields.with.options.fieldId)) {
     # Set also labels in the format expected by sjmisc with set_labels()
 #    my.field.data.labels.sjmisc <- set_labels(my.field.data,
 #                                              memisc::labels(my.field.data.labels.memisc))
-    my.field.data.labels.sjmisc <- set_labels(my.field.data,
-                                                merged.df$label)    
+    my.field.data.labels.sjmisc <- try(set_labels(my.field.data,
+                                                merged.df$label)    , TRUE)
 
      length(my.field.data)
 names(my.field.data)
@@ -423,11 +423,11 @@ names(my.field.data)
 
       
   # Record on disk an html version of this varaible with labels.
-  view_df(as.data.frame(my.field.data.labels.sjmisc), file=paste0("view_df_ff", ff,
+  try(view_df(as.data.frame(my.field.data.labels.sjmisc), file=paste0("view_df_ff", ff,
                                                   "_fieldId", my.field.id,
                                                   "_col", my.df.c.col.idx,
                                                   "_", my.field.name,
-                                                  ".html") )
+                                                  ".html") ), TRUE)
   
   } # Done setting labels to a variable with data to be labelled
 
