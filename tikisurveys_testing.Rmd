@@ -13,6 +13,25 @@ Interesting Slides from a presentation in VII Jornades de Usuarios de R (R-es)
 See Presentation from:
 http://files.meetup.com/1781511/useR%20Vignette%20-%20Accessing%20Databases%20from%20R%20-%2020110504.pdf
 
+## Basic params
+
+```{r Basic params, echo=FALSE}
+
+#baseDir <- paste0("/home/xavi/Estudis/", analysisName) # Pentinella
+baseDir <- "."
+workingDir <- baseDir
+setwd(workingDir)
+dataRelDir <- "data"
+resultsRelDir <- "results"
+logsRelDir <- "logs"
+
+folders2create <- c(dataRelDir, resultsRelDir, logsRelDir)
+# Start loop over folders
+for (folder in folders2create) {
+  # Check if folder exists. If not, create it.
+  if (!dir.exists(file.path(workingDir, folder))) dir.create(file.path(workingDir, folder))
+  }
+```
 
 ## Install packages
 
@@ -113,7 +132,7 @@ my.c.encoding
 # Fetch content in binari form and save to plain text file on disk
 bin <- httr::content(my.c, "raw")
 my.tracker.file <- paste0("tracker_", my.trackerId,"_", format(Sys.Date(), "%y%m%d"),".csv")
-writeBin(bin, file.path(getwd(), my.tracker.file))
+writeBin(bin, file.path(getwd(), dataRelDir, my.tracker.file))
 ```
 
 ## massage and cleanup the dataset
@@ -123,9 +142,9 @@ We tried applying an "apply" function to the whole data frame just for the sake 
 Sys.setlocale('LC_ALL','C') # Needed to avoid this warning message: "input string 90 is invalid in this locale", etc. Adn this line had this code: "1=S\xed\" (meaning "1=Sí").
 
 # Read the dsv file
-#my.df <- fread(file.path(getwd(), my.tracker.file), stringsAsFactors=FALSE, data.table=F)
+#my.df <- fread(file.path(getwd(), dataRelDir, my.tracker.file), stringsAsFactors=FALSE, data.table=F)
 # Replace data.table::fread efficient function with readr::read_csv, which self recognizes data types, while standard read.csv or fread does not. 
-my.df <- readr::read_csv(file.path(getwd(), my.tracker.file))
+my.df <- readr::read_csv(file.path(getwd(), dataRelDir, my.tracker.file))
 #str(my.df)
 head(my.df[,1:10])
 
@@ -254,7 +273,7 @@ for (ii in seq(1, length(my.op.tmp), by=2)) {
 #memisc::labels(my.field.data) <- c("\"Mujer\"" = 0,  "\"Varon\"" = 1,  "\"ns/nc\"" = 99)
 
 # Therefore we need to use the memisc:as.item function to properly merge all the required info in place
-my.field.labels <- as.item(my.field.data, 
+my.field.labels <- memisc::as.item(my.field.data, 
                       labels=structure(my.op.tmp.number, 
                                        names=my.op.tmp.label),
                       missing.values=99,
@@ -264,10 +283,10 @@ my.field.labels <- as.item(my.field.data,
                       )
 memisc::labels(my.field.labels)
 
-view_df(as.data.frame(my.field.labels))
+#view_df(as.data.frame(my.field.labels))
 my.field.data <- set_labels(my.field.data, memisc::labels(my.field.labels))
 get_labels(my.field.data, include.values = T)
-view_df(data.frame(my.field.data))
+#view_df(data.frame(my.field.data))
 
 ```
 
@@ -365,7 +384,7 @@ for (ff in 1:length(fields.with.options.fieldId)) {
     # (1) MEMISC LABELS
     # -----------------
     # First, we need to use the memisc:as.item function to properly merge all the required info in place
-    my.field.data.labels.memisc <- as.item(my.field.data, 
+    my.field.data.labels.memisc <- memisc::as.item(my.field.data, 
                                         labels=structure(my.op.tmp.number, 
                                                          names=my.op.tmp.label),
                                         missing.values=99,
@@ -423,11 +442,15 @@ names(my.field.data)
 
       
   # Record on disk an html version of this varaible with labels.
-  try(view_df(as.data.frame(my.field.data.labels.sjmisc), file=paste0("view_df_ff", ff,
+  if (any(grepl("Error", try(view_df(as.data.frame(my.field.data.labels.sjmisc), 
+                                   file=file.path(logsRelDir, paste0("view_df_ff", ff,
                                                   "_fieldId", my.field.id,
                                                   "_col", my.df.c.col.idx,
                                                   "_", my.field.name,
-                                                  ".html") ), TRUE)
+                                                  ".html")) ), TRUE), ignore.case = TRUE, fixed=FALSE))) {
+    cat(paste0("Error in ff", ff, "_fieldId", my.field.id, "_col", my.df.c.col.idx,
+               "_", my.field.name, "\n"))
+                                                  }
   
   } # Done setting labels to a variable with data to be labelled
 
@@ -446,7 +469,7 @@ names(my.field.data)
 
 # Therefore we need to convert the clean matrix of data, into a data.frame, and convert it to class data.set from package memisc
 my.ds <- as.data.set(data.frame(my.df.c)) 
-class(my.ds)
+#class(my.ds)
 ```
 
 # Produce some description out of the data
@@ -454,12 +477,14 @@ class(my.ds)
 ```{r Produce some description out of the data}
 require(sjmisc)
 require(sjPlot)
-view_df(data.frame(my.df.c))
+view_df(data.frame(my.df.c), file=file.path(resultsRelDir, paste0("view_df_my.df.c", ".html")),
+        showFreq = TRUE, showPerc = TRUE)
 #view_df(data.frame(my.df.c), showFreq = TRUE, showPerc = TRUE) #  # As before, but with frequencies and percentages (as a "codebook")
-view_df(data.frame(my.ds))
+
+#view_df(data.frame(my.ds), file=paste0("view_df_my.ds", ".html"))
 #view_df(data.frame(my.ds), showFreq = TRUE, showPerc = TRUE) #  # As before, but with frequencies and percentages (as a "codebook")
 
-sjt.frq (data.frame(my.df.c)[,10]) # For one variable, such as "Sexo -- 9", which is #10 here.
+#sjt.frq (data.frame(my.df.c)[,10]) # For one variable, such as "Sexo -- 9", which is #10 here.
 
 ```
 
@@ -551,7 +576,7 @@ save(my.c,
 ###################################################
 # Store session info (package versions, etc) in the logs folder
 ###################################################
-sink(file.path(paste0("log_", format(Sys.Date(), format="%y%m%d"), "_", aID, ".txt")))
+sink(file.path(logsRelDir, paste0("log_", format(Sys.Date(), format="%y%m%d"), "_", aID, ".txt")))
 cat("Sys.info() : \n")
 cat("--------------------\n")
 data.frame(Sys.info())
