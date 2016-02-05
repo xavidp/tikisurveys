@@ -35,6 +35,17 @@ for (folder in folders2create) {
 
 ## Install packages
 
+### System packages
+You will need unaccent (which reuses iconv system command in the backend) to replace accented characters with their non-accented counterparts. The function iconv from the R package works well with data inside a data.frame, but it seems to produce NA when the string to make the replacement in, is the column name of the dataframe. Therefore, since we need to do this replacement for the data in the csv coming from the tracker, we will do so with a system command to that csv file before reading it into a data.frame in R.
+
+We will also replace some strings there with system program "sed" . See:
+* http://www.grymoire.com/Unix/Sed.html 
+* http://www.brunolinux.com/02-The_Terminal/Find_and%20Replace_with_Sed.html
+
+You can install them in Debian based machines with:
+
+> sudo apt-get install unaccent sed
+
 ### R packages (from CRAN and eventually from Bioconductor)
 ```{r Install packages, echo=FALSE}
 Sys.setenv(GIT_ASKPASS=Sys.getenv("SSH_ASKPASS"))
@@ -130,9 +141,9 @@ my.c.encoding
 #my.df <- content(my.c, "text", encoding = my.c.encoding)
 
 # Fetch content in binari form and save to plain text file on disk
-bin <- httr::content(my.c, "raw")
-my.tracker.file <- paste0("tracker_", my.trackerId,"_", format(Sys.Date(), "%y%m%d"),".csv")
-writeBin(bin, file.path(getwd(), dataRelDir, my.tracker.file))
+bin <- httr::content(my.c, "raw", encoding="UTF-8")
+my.base.filename <- paste0("trk", my.trackerId,"_", format(Sys.Date(), "%y%m%d"))
+writeBin(bin, file.path(getwd(), dataRelDir, paste0(my.base.filename, "_my.df.dirty.csv")))
 ```
 
 ## massage and cleanup the dataset
@@ -141,17 +152,35 @@ We tried applying an "apply" function to the whole data frame just for the sake 
 ```{r massage and cleanup the dataset, echo=TRUE}
 Sys.setlocale('LC_ALL','C') # Needed to avoid this warning message: "input string 90 is invalid in this locale", etc. Adn this line had this code: "1=S\xed\" (meaning "1=Sí").
 
-# Read the dsv file
+## This command with iconv after the csv is read into R will fail for colnames (it produces NA). 
+#  iconv(colnames(my.df), to='ASCII//TRANSLIT')
+## Therefore, solve this issue with a system call to unnaccent (reuing iconv in the backend)
+#  sudo apt-get install unaccent
+# unaccent UTF-8 < file > file.unaccented
+my.df.file.dirty <- file.path(getwd(), dataRelDir, paste0(my.base.filename, "_my.df.dirty.csv"))
+my.df.file.clean <- file.path(getwd(), dataRelDir, paste0(my.base.filename, "_my.df.clean.csv"))
+system(paste0("unaccent UTF-8 < ", my.df.file.dirty, " > ", my.df.file.clean))
+# Replace all html tags, such as "<span class='formunit'>#</span>" with sed at system level
+# sed 's/FINDSTRING/REPLACESTRING/g' $fl.old > $fl
+sed.command <- paste0("sed -i -e 's/<[^>]*>//g' ", my.df.file.clean)
+system(sed.command)
+sed.command <- paste0("sed -i -e 's/%%%//g' ", my.df.file.clean)
+system(sed.command)
+
+
+# Read the csv file
 #my.df <- fread(file.path(getwd(), dataRelDir, my.tracker.file), stringsAsFactors=FALSE, data.table=F)
 # Replace data.table::fread efficient function with readr::read_csv, which self recognizes data types, while standard read.csv or fread does not. 
-my.df <- readr::read_csv(file.path(getwd(), dataRelDir, my.tracker.file))
+my.df <- readr::read_csv(my.df.file.clean)
 #str(my.df)
 head(my.df[,1:10])
 
 #class(gsub("<span class='formunit'>#</span>", "", my.df[,2], fixed=T))
-# Clean col 2 (self numbered column in Tiki with this annoying span html class)
-my.df[,2] <- gsub("<span class='formunit'>#</span>", "", my.df[,2], fixed=T)
+# Clean col 2 ("#Id -- 1", self numbered column in Tiki with this annoying span html class)
+my.df[,"#Id -- 1"] <- gsub("<span class='formunit'>#</span>", "", my.df[,"#Id -- 1"], fixed=T)
 #my.df[,2] <- str_replace_all(my.df[,2], "<span class='formunit'>#</span>", "")
+#colnames(my.df)
+#iconv(colnames(my.df), to='ASCII//TRANSLIT')
 
 #my.df.c <- apply(my.df, 2, gsub, pattern="<span class='formunit'>#</span>", replacement="", fixed=T)
 
@@ -182,6 +211,9 @@ con = dbConnect(RMySQL::MySQL(), myTikiDb, username=myMySQLUser, password=myMySQ
 summary(con)
 dbGetInfo(con)
 dbListResults(con)
+dbGetQuery(con, "SET NAMES utf8")
+dbGetQuery(con, 'set character set utf8')
+dbGetQuery(con, "SHOW VARIABLES LIKE 'character_set_%'")
 db.tables <- dbListTables(con)
 head(db.tables)
 #tmp <- sprintf("SELECT * FROM name WHERE lname = %s", "O'Reilly")
@@ -193,6 +225,21 @@ dim(my.t)
 # [1] 274  23
 
 my.tfd <- base::subset(my.t, trackerId == myTrackerId) # My Tracker Fields Definition
+
+# Save dataset to disk as csv
+my.tfd.file.dirty <- file.path(getwd(), dataRelDir, paste0(my.base.filename, "_my.tfd.dirty.csv"))
+write_csv(my.tfd, my.tfd.file.dirty)
+
+# Clean accents out of the Tracker Definition table data with "unaccent"" also here, in an equivalent way to the conversion done for the my.df dataset.
+# unaccent UTF-8 < file > file.unaccented
+my.tfd.file.clean <- file.path(getwd(), dataRelDir, paste0(my.base.filename, "_my.tfd.clean.csv"))
+system(paste0("unaccent UTF-8 < ", my.tfd.file.dirty, " > ", my.tfd.file.clean))
+
+# Read the csv file
+#my.df <- fread(file.path(getwd(), dataRelDir, my.tracker.file), stringsAsFactors=FALSE, data.table=F)
+# Replace data.table::fread efficient function with readr::read_csv, which self recognizes data types, while standard read.csv or fread does not. 
+#my.tfd <- readr::read_csv(my.tfd.file.clean)
+#my.tfd <- as.data.frame(my.tfd)
 #dim(my.tfd)
 #head(my.tfd)
 #str(my.tfd)
@@ -209,10 +256,33 @@ dbDisconnect(con)
 ```{r Clean the Tracker field definition also for weirdnesses}
 
 # With a simple gsub over columns options
-##grep("S\\u00cd", my.tfd[,"options"], fixed=T)
-##grep("S\\u00ed", my.tfd[,"options"], fixed=T)
+#issue.idx <- grep("\\u00", my.tfd[,"options"], fixed=T)
+#my.tfd[issue.idx,"options"]
+##grep("<U+00E1>", my.tfd[,"name"], fixed=T)
 my.tfd[,"options"] <- gsub("S\\u00cd", "Si", my.tfd[,"options"], fixed=T)
 my.tfd[,"options"] <- gsub("S\\u00ed", "Si", my.tfd[,"options"], fixed=T)
+my.tfd[,"options"] <- gsub("\\u00f3", "o", my.tfd[,"options"], fixed=T)
+my.tfd[,"options"] <- gsub("\\u00e1", "a", my.tfd[,"options"], fixed=T)
+my.tfd[,"options"] <- gsub("\\u00fa", "u", my.tfd[,"options"], fixed=T)
+my.tfd[,"options"] <- gsub("\\u00f1", "ny", my.tfd[,"options"], fixed=T)
+my.tfd[,"options"] <- gsub("\\u00e9", "e", my.tfd[,"options"], fixed=T)
+my.tfd[,"options"] <- gsub("\\u00ed", "i", my.tfd[,"options"], fixed=T)
+
+#issue.idx <- grep("\303", my.tfd[,"name"], fixed=T)
+#my.tfd[issue.idx,"name"]
+my.tfd[,"name"] <- gsub("\303\241", "a", my.tfd[,"name"], fixed=T) # "á" for "a" # <U+00E1>
+my.tfd[,"name"] <- gsub("\303\255", "i", my.tfd[,"name"], fixed=T) # "í" for "i" # <U+00E1>
+my.tfd[,"name"] <- gsub("\303\263", "o", my.tfd[,"name"], fixed=T) # "ó" for "o" # <U+00E1>
+my.tfd[,"name"] <- gsub("\303\223", "O", my.tfd[,"name"], fixed=T) # "Ó" for "O" # <U+00E1>
+my.tfd[,"name"] <- gsub("\303", "", my.tfd[,"name"], fixed=T) # "" for "" # <U+00E1>
+
+#iconv(my.tfd[,"options"], to='ASCII//TRANSLIT')
+#iconv(my.tfd[,"name"], to='ASCII//TRANSLIT')
+
+#colnames(my.tfd)
+#my.tfd[grep("438", my.tfd$"fieldId"),]
+#my.tfd[grep("51$", my.tfd$"fieldId"),]
+#my.tfd[grep("\341", my.tfd$"name"),]
 
 # "Processing fieldId"
 
@@ -468,7 +538,10 @@ names(my.field.data)
 #class(my.df.c)
 
 # Therefore we need to convert the clean matrix of data, into a data.frame, and convert it to class data.set from package memisc
-my.ds <- as.data.set(data.frame(my.df.c)) 
+#my.ds <- as.data.set(data.frame(my.df.c)) 
+# Fails with: 
+#Error in (function (classes, fdef, mtable)  : 
+#  unable to find an inherited method for function 'as.item' for signature '"Date"'
 #class(my.ds)
 ```
 
@@ -477,8 +550,9 @@ my.ds <- as.data.set(data.frame(my.df.c))
 ```{r Produce some description out of the data}
 require(sjmisc)
 require(sjPlot)
-view_df(data.frame(my.df.c), file=file.path(resultsRelDir, paste0("view_df_my.df.c", ".html")),
-        showFreq = TRUE, showPerc = TRUE)
+view_df(data.frame(my.df.c), 
+        file=file.path(resultsRelDir, paste0(my.base.filename,"_view_df.html")),
+        showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE)
 #view_df(data.frame(my.df.c), showFreq = TRUE, showPerc = TRUE) #  # As before, but with frequencies and percentages (as a "codebook")
 
 #view_df(data.frame(my.ds), file=paste0("view_df_my.ds", ".html"))
@@ -511,7 +585,7 @@ Rz()
 
 ```{r Some ways to make descriptive statistics}
 # See http://r-es.org/7jornadasR/ponencias/jose_ignacio_casas.pdf (Slide 21 onwards)
-dim(my.t.fieldIds)
+#dim(my.t.fieldIds)
 
 #description(my.df[,1:10])
 # Try some packaages for a basic descriptive statistics out of some data set
@@ -544,12 +618,12 @@ dim(my.t.fieldIds)
 #library(qdap)
 
 ### EXAMPLE with pre-set data frame by hand
-marca<-c("opel","renault","renault")
-model<-c("corsa","laguna","modus")
-cilindrada<-c(1.2,1.9,1.5)
-color<-c("blanc","vermell","violeta")
-cotxes<-data.frame(marca,model,cilindrada,color)
-cotxes
+# marca<-c("opel","renault","renault")
+# model<-c("corsa","laguna","modus")
+# cilindrada<-c(1.2,1.9,1.5)
+# color<-c("blanc","vermell","violeta")
+# cotxes<-data.frame(marca,model,cilindrada,color)
+# cotxes
 # init default theme for plots
 #sjp.setTheme(geom.label.size = 2.5, axis.title.size = .9, axis.textsize = .9)
 #sjp.frq(cotxes$marca)
