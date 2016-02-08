@@ -266,6 +266,15 @@ dbDisconnect(con)
 ##grep("<U+00E1>", my.tfd[,"name"], fixed=T)
 my.tfd[,"options"] <- gsub("S\\u00cd", "Si", my.tfd[,"options"], fixed=T)
 my.tfd[,"options"] <- gsub("S\\u00ed", "Si", my.tfd[,"options"], fixed=T)
+#issue.idx <- grep("Tabaco", my.tfd[,"name"], fixed=T)
+#my.tfd[issue.idx,]
+
+# Pending ToDo: handle properly the Multiple option fields
+# --------
+#multopt.idx <- grep("\"inputtype\":\"m\"", my.tfd[,"options"], fixed=T)
+#my.tfd[multopt.idx,]
+# ---------
+
 my.tfd[,"options"] <- gsub("\\u00f3", "o", my.tfd[,"options"], fixed=T)
 my.tfd[,"options"] <- gsub("\\u00e1", "a", my.tfd[,"options"], fixed=T)
 my.tfd[,"options"] <- gsub("\\u00fa", "u", my.tfd[,"options"], fixed=T)
@@ -280,6 +289,13 @@ my.tfd[,"name"] <- gsub("\303\255", "i", my.tfd[,"name"], fixed=T) # "í" for "i
 my.tfd[,"name"] <- gsub("\303\263", "o", my.tfd[,"name"], fixed=T) # "ó" for "o" # <U+00E1>
 my.tfd[,"name"] <- gsub("\303\223", "O", my.tfd[,"name"], fixed=T) # "Ó" for "O" # <U+00E1>
 my.tfd[,"name"] <- gsub("\303", "", my.tfd[,"name"], fixed=T) # "" for "" # <U+00E1>
+
+# Same cleaning for Options
+my.tfd[,"options"] <- gsub("\303\241", "a", my.tfd[,"options"], fixed=T) # "á" for "a" # <U+00E1>
+my.tfd[,"options"] <- gsub("\303\255", "i", my.tfd[,"options"], fixed=T) # "í" for "i" # <U+00E1>
+my.tfd[,"options"] <- gsub("\303\263", "o", my.tfd[,"options"], fixed=T) # "ó" for "o" # <U+00E1>
+my.tfd[,"options"] <- gsub("\303\223", "O", my.tfd[,"options"], fixed=T) # "Ó" for "O" # <U+00E1>
+my.tfd[,"options"] <- gsub("\303", "", my.tfd[,"options"], fixed=T) # "" for "" # <U+00E1>
 
 #iconv(my.tfd[,"options"], to='ASCII//TRANSLIT')
 #iconv(my.tfd[,"name"], to='ASCII//TRANSLIT')
@@ -298,70 +314,87 @@ my.tfd[,"name"] <- gsub("\303", "", my.tfd[,"name"], fixed=T) # "" for "" # <U+0
 # Test the display for a radio button field
 
 ```{r Test the display for a radio button field}
-# Test displaying as dataframe some json-encoded data from a radio button field definition
+check.one.field <- F # TRUE # FALSE
+if (check.one.field) {
+    # Test displaying as dataframe some json-encoded data from a radio button field definition
+    
+    # Display with row from the my.tt df object contains the values for the definition of fieldId 9 (Sexo -- 9)
+    #which(my.tfd$fieldId==9)
+    # [1] 135
+    #my.tfd[which(my.tfd$fieldId==9),"options"]
+    # [1] "{\"options\":[\"0=Mujer\",\"1=Varon\",\"99=ns/nc\"]}"
+    #table(as.numeric(my.tfd$fieldId)==9)
+    #class(my.tfd$fieldId)
+    
+    # Test for the error in names issue "Tabaco -- 19", for instance
+    #which(my.tfd$fieldId==19)
+    # [1] 83
+    #my.tfd[which(my.tfd$fieldId==19),"options"]
+    # [1] "{\"options\":[\"0=No\",\"1=S\303\255\",\"99=ns/nc\"]}"
+    #table(as.numeric(my.tfd$fieldId)==19)
+    #class(my.tfd$fieldId)
+    my.options <- unlist(fromJSON(as.character(my.tfd[which(as.numeric(my.tfd$fieldId)==19),"options"])))
+    my.op.tmp <- unlist(str_split(my.options, "="))
+    
+    #head(my.df[,1:10])
+    #length(colnames(my.df))
+    #[1] 274
+    #str(my.df[,"Sexo -- 9"])
+    
+    #my.field.colname <- "Sexo -- 9" # As a Column name of my.df
+    my.field.colname <- "Tabaco -- 19" # As a Column name of my.df
+    my.field.name <- unlist(str_split(my.field.colname, " -- "))[1]
+    my.field.id <- unlist(str_split(my.field.colname, " -- "))[2]
+    my.field.data <- as.data.frame(my.df.c[,my.field.colname])[,1]
+    
+    #Recode something like 
+                      # "0"     "Mujer" "1"     "Varon" "99"    "ns/nc"
+                      # into something like:
+                      # "Mujer" = 0, "Varon" = 1, "ns/nc" = 99
+    cc <- 0 # loop counter
+    my.options <- NULL
+    my.op.tmp.number <- NULL
+    my.op.tmp.label <- NULL
+    # We generate two clean vectors with the information of the numbers (option values in the form)
+    # and the corresponding labels shown in the form, for further merging of the information 
+    # in the memisc::as.item function.
+    for (ii in seq(1, length(my.op.tmp), by=2)) {
+      cc <- cc+1
+      my.op.tmp.number[cc] <- my.op.tmp[ii] 
+      my.op.tmp.label[cc]  <- my.op.tmp[ii+1]
+    }
+    
+    #my.op.tmp.number # Clea vector of numbers (options in the form)
+    #my.op.tmp.label # Clean vector of labels corresponding to the previous options
+    
+    # If we were to do it by hand we would do it like this:
+    #memisc::labels(my.field.data) <- c("Mujer" = 0,
+    #                           "Varon" = 1,
+    #                           "ns/nc" = 99)
+    # However, with standard "assign" or "factor" or equivalent functions, it doesn't work:
+    #memisc::labels(my.field.data) <- c("\"Mujer\"" = 0,  "\"Varon\"" = 1,  "\"ns/nc\"" = 99)
+    
+    # Therefore we need to use the memisc:as.item function to properly merge all the required info in place
+    my.field.labels <- memisc::as.item(my.field.data, 
+                          labels=structure(my.op.tmp.number, 
+                                           names=my.op.tmp.label),
+                          missing.values=99,
+                          annotation = c(
+                            description=my.field.name
+                            )
+                          )
+    memisc::labels(my.field.labels)
+    
+    #view_df(as.data.frame(my.field.labels))
+    my.field.data2 <- set_labels(my.field.data, memisc::labels(my.field.labels))
+    get_labels(my.field.data2, include.values = T,  include.non.labelled = TRUE)
+    #view_df(data.frame(my.field.data2))
+    #my.field.data3 <- set_labels(my.field.data, memisc::labels(my.field.labels), 
+    #                             force.labels = TRUE, force.values = FALSE)
+    #get_labels(my.field.data3, include.values = T,  include.non.labelled = TRUE)
+    #view_df(data.frame(my.field.data3))
 
-# Display with row from the my.tt df object contains the values for the definition of fieldId 9 (Sexo -- 9)
-#which(my.tfd$fieldId==9)
-# [1] 135
-#my.tfd[which(my.tfd$fieldId==9),"options"]
-# [1] "{\"options\":[\"0=Mujer\",\"1=Varon\",\"99=ns/nc\"]}"
-#table(as.numeric(my.tfd$fieldId)==9)
-#class(my.tfd$fieldId)
-my.options <- unlist(fromJSON(as.character(my.tfd[which(as.numeric(my.tfd$fieldId)==9),"options"])))
-my.op.tmp <- unlist(str_split(my.options, "="))
-
-#head(my.df[,1:10])
-#length(colnames(my.df))
-#[1] 274
-#str(my.df[,"Sexo -- 9"])
-
-my.field.colname <- "Sexo -- 9" # As a Column name of my.df
-my.field.name <- unlist(str_split(my.field.colname, " -- "))[1]
-my.field.id <- unlist(str_split(my.field.colname, " -- "))[2]
-my.field.data <- as.data.frame(my.df.c[,my.field.colname])[,1]
-
-#Recode something like 
-                  # "0"     "Mujer" "1"     "Varon" "99"    "ns/nc"
-                  # into something like:
-                  # "Mujer" = 0, "Varon" = 1, "ns/nc" = 99
-cc <- 0 # loop counter
-my.options <- NULL
-my.op.tmp.number <- NULL
-my.op.tmp.label <- NULL
-# We generate two clean vectors with the information of the numbers (option values in the form)
-# and the corresponding labels shown in the form, for further merging of the information 
-# in the memisc::as.item function.
-for (ii in seq(1, length(my.op.tmp), by=2)) {
-  cc <- cc+1
-  my.op.tmp.number[cc] <- my.op.tmp[ii] 
-  my.op.tmp.label[cc]  <- my.op.tmp[ii+1]
 }
-
-#my.op.tmp.number # Clea vector of numbers (options in the form)
-#my.op.tmp.label # Clean vector of labels corresponding to the previous options
-
-# If we were to do it by hand we would do it like this:
-#memisc::labels(my.field.data) <- c("Mujer" = 0,
-#                           "Varon" = 1,
-#                           "ns/nc" = 99)
-# However, with standard "assign" or "factor" or equivalent functions, it doesn't work:
-#memisc::labels(my.field.data) <- c("\"Mujer\"" = 0,  "\"Varon\"" = 1,  "\"ns/nc\"" = 99)
-
-# Therefore we need to use the memisc:as.item function to properly merge all the required info in place
-my.field.labels <- memisc::as.item(my.field.data, 
-                      labels=structure(my.op.tmp.number, 
-                                       names=my.op.tmp.label),
-                      missing.values=99,
-                      annotation = c(
-                        description=my.field.name
-                        )
-                      )
-memisc::labels(my.field.labels)
-
-#view_df(as.data.frame(my.field.labels))
-my.field.data <- set_labels(my.field.data, memisc::labels(my.field.labels))
-get_labels(my.field.data, include.values = T)
-#view_df(data.frame(my.field.data))
 
 ```
 
@@ -466,7 +499,7 @@ fields.with.options.fieldId <- my.tfd[fields.with.options.idx,"fieldId"]
 #head(my.df.c)
 
 for (ff in 1:length(fields.with.options.fieldId)) {
-  #ff <- 61; ff <- 1 # f_id 281; ff <- 2 # f_id 280; ff <- 3 # f_id 270...; ff <- 5 # f_id 549 
+  #ff <- 43 # f_id 19; ff <- 61; ff <- 1 # f_id 281; ff <- 2 # f_id 280; ff <- 3 # f_id 270...; ff <- 5 # f_id 549 
   # fields.with.options.idx[ff]
   # Report progress
   cat(paste0(" (", ff, "/", length(fields.with.options.fieldId), ")", " Processing fieldId: ", fields.with.options.fieldId[ff], "\n"))
@@ -546,17 +579,22 @@ for (ff in 1:length(fields.with.options.fieldId)) {
    
     # (2b) SJMISC LABELS
     # -----------------
-    # Set also labels in the format expected by sjmisc with set_labels()
-#    my.field.data.labels.sjmisc <- set_labels(my.field.data,
-#                                              memisc::labels(my.field.data.labels.memisc))
-    my.field.data.labels.sjmisc <- try(set_labels(my.field.data,
-                                                merged.df$label)    , TRUE)
+    # If there are more labels than levels of values, avoid the error.
+    if (length(table(my.field.data)) != length(table(memisc::labels(my.field.data.labels.memisc)))) {
+        my.field.data.labels.sjmisc <- try(set_labels(my.field.data,
+                                                      merged.df$label)    , TRUE)
+    } else {
+        # Set also labels in the format expected by sjmisc with set_labels()
+        my.field.data.labels.sjmisc <- set_labels(my.field.data,
+                                                  memisc::labels(my.field.data.labels.memisc),
+                                                  force.labels = F, force.values = T)
+    }
 
-     length(my.field.data)
-names(my.field.data)
-     length(labels(my.field.data))
-     length(labels(merged.df$label))
-     names(merged.df$label)
+#     length(my.field.data)
+#names(my.field.data)
+#     length(labels(my.field.data))
+#     length(labels(merged.df$label))
+#     names(merged.df$label)
 #     length(memisc::labels(my.field.data.labels.memisc))
 #     class(my.field.data)
 #     class(base::labels(my.field.data.labels.memisc))
