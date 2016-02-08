@@ -166,6 +166,11 @@ sed.command <- paste0("sed -i -e 's/<[^>]*>//g' ", my.df.file.clean)
 system(sed.command)
 sed.command <- paste0("sed -i -e 's/%%%//g' ", my.df.file.clean)
 system(sed.command)
+sed.command <- paste0("sed -i -e 's/\t//g' ", my.df.file.clean)
+system(sed.command)
+sed.command <- paste0("sed -i -e 's/?nbsp;//g' ", my.df.file.clean)
+system(sed.command)
+
 
 
 # Read the csv file
@@ -386,10 +391,23 @@ table(my.tfd[grep("options", my.tfd$options, fixed=TRUE),"type"])
 # See this page to check their correspondence
 # https://dev.tiki.org/Tracker+Field+Types
 
+# Headers will be treated aside of the rest. 
+# h: Header
+#
 # Special handling will be needed also for field type:
 # f: Date and Time
 
-# FROM TRACKER FIELD DEFINITION
+# FROM TRACKER FIELD DEFINITION (my.tfd)
+# --------------------------------------
+# We can start by removing them from the my.tfd to be displayed as results. We don't do a standard fixed grep to "h" since that would get also the field type "math". Therefore, we grep with a regular expression for "h" at the beggining of the sentence/value and ending with that character also.
+fields.headers.idx <- grep("^h$", my.tfd$type, fixed=FALSE)
+#length(fields.headers.idx)
+# 47
+# Get the fieldId's corresponding to Header type of Field
+fields.headers.fieldId <- my.tfd[fields.headers.idx,"fieldId"]
+# Remove those from the Tracker definition table (my.tfd)
+my.tfd <- my.tfd[-fields.headers.idx,]
+
 # Indexes of the data frame that correspond to fields which contain value:label pairs (as options)
 fields.with.options.idx <- grep("options", my.tfd$options, fixed=TRUE)
   #head(my.tfd[fields.with.options.idx,])
@@ -397,7 +415,20 @@ fields.with.options.idx <- grep("options", my.tfd$options, fixed=TRUE)
 # FieldId's for those cases of tracker fields (fields which contain value:label pairs, as options)
 fields.with.options.fieldId <- my.tfd[fields.with.options.idx,"fieldId"]
 
-# FROM TRACKER DATA
+# FROM TRACKER DATA (my.df.c)
+# ---------------------------
+# Remove those fields.headers.fieldId from the Tracker data (my.df.c)
+fields.headers.fieldId
+#colnames(my.df.c)
+# Get the fieldId numbers from the colnames compound string (e.g. "INTRODUCCION -- 525")
+my.df.c.col.fieldId <- as.numeric(str_split_fixed(colnames(my.df.c), " -- ", n=2)[,2])
+# Get the column positions of the variables type Header
+my.df.c.col.fieldId.h <- my.df.c.col.fieldId %in% fields.headers.fieldId
+# Check that the results are the expected
+#colnames(my.df.c)[my.df.c.col.fieldId.h]
+my.df.c2 <- my.df.c[,-my.df.c.col.fieldId.h]
+#head(my.df.c2)
+
 # Get the column numbers of the variables that contain data that needs to be labelled properly
 # Identify the data columns that require value:label pair fixing
 #head(my.df.c)
