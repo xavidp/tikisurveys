@@ -314,7 +314,7 @@ my.tfd[,"options"] <- gsub("\303", "", my.tfd[,"options"], fixed=T) # "" for "" 
 # Test the display of a radio button field
 
 ```{r Test the display of a radio button field}
-check.one.rb.field <- F # TRUE # FALSE
+check.one.rb.field <- F # TRUE # FALSE
 if (check.one.rb.field) {
     # Test displaying as dataframe some json-encoded data from a radio button field definition
     
@@ -430,6 +430,8 @@ if (check.one.rb.field) {
 }
 
 ```
+
+
 # Test function view_df to attempt to tweak it for date fields
 
 ```{r Test function view_df to attempt to tweak it for date fields}
@@ -745,6 +747,50 @@ my.df.c <- my.df.c[,!my.df.c.col.fieldId.h]
 my.df.c <- my.df.c[,-grep("#Id -- 1", colnames(my.df.c))]
 my.df.c <- my.df.c[,-grep("Comentarios -- 3", colnames(my.df.c))]
 #colnames(my.df.c.new)[1:10]
+
+# Convert to factor all columns the carry dates
+my.df.c.date.fname <- grep("Fecha", colnames(my.df.c), fixed=F, ignore.case = T, value=T)
+my.df.c[,my.df.c.date.fname] <- lapply(my.df.c[,my.df.c.date.fname] , factor)
+
+```
+
+# Play with dates
+
+```{r Play with dates}
+play.with.dates <- F # F # T
+if (play.with.dates) {
+  # A. Dates info from  my.df.c
+  my.df.c.date.fname <- grep("Fecha", colnames(my.df.c), fixed=F, ignore.case = T, value=T)
+  my.df.c.date.col.idx <- grep("Fecha", colnames(my.df.c), fixed=F, ignore.case = T, value=F)
+  my.df.c.date.col.fid <- as.numeric(str_split_fixed(colnames(my.df.c)[my.df.c.date.col.idx], " -- ", n=2)[,2])
+  
+  for (dd in 1:length(my.df.c.date.col.idx)) {
+    # dd <- 1;
+    if (length(str_split(as.character(my.df.c[1,my.df.c.date.col.idx[dd]]), "-")[[1]]) > 3) {
+      as.Date(my.df.c[,my.df.c.date.col.idx[dd]], format="%Y-%m-%d %H:%M:%S")  
+    } else if (length(str_split(as.character(my.df.c[1,my.df.c.date.col.idx[dd]]), "-")[[1]]) == 3){
+      as.Date(my.df.c[,my.df.c.date.col.idx[dd]], format="%Y-%m-%d")  
+    } else {
+      cat(my.df.c[,my.df.c.date.col.idx[dd]])
+      cat("\n*** Unclear date format. Please revise your date ***\n")
+    }
+  }
+  
+  #view_df(data.frame(my.df.c))
+  #md <- my.df.c[1,my.df.c.date.col.idx]
+  #md[1:3]
+  #class(md[1,3])
+  #as.Date(md[1,3], format="%Y-%m-%d %H:%M:%S")-as.Date(md[1,2], format="%Y-%m-%d %H:%M:%S")
+  
+  # B. Dates info from  my.tfd
+  fields.dates.idx <- grep("^f$", my.tfd$type, fixed=FALSE)
+  length(fields.dates.idx)
+  # 21
+  # Get the fieldId's corresponding to date type of Field
+  fields.dates.fieldId <- my.tfd[fields.dates.idx,"fieldId"]
+  table(fields.dates.fieldId %in% my.df.c.date.col.fid)
+}
+
 ```
 
 ## Get the list of fields TRACKER FIELD DEFINITION (my.tfd) with Options
@@ -953,7 +999,7 @@ sjt.df(as.data.frame(my.df.c),
 
 
 ```{r Tweak data and labels through GUI (Optional)}
-require(Rz)
+#require(Rz)
 #Rz()
 
 ```
