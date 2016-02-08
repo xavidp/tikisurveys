@@ -365,9 +365,10 @@ get_labels(my.field.data, include.values = T)
 
 ```
 
-# Loop to add value/label pairs to all variables where needed
+# Check field types and filter out unwanted fields
 
-```{r Loop to add value/label pairs to all variables where needed}
+```{r Check field types and filter out unwanted fields}
+
 # Have a look at the columns and some of their values of the tracker field definitions (my.tfd)
 head(my.tfd)
 
@@ -397,6 +398,11 @@ table(my.tfd[grep("options", my.tfd$options, fixed=TRUE),"type"])
 # Special handling will be needed also for field type:
 # f: Date and Time
 
+```
+
+## Cleanup from TRACKER FIELD DEFINITION (my.tfd)
+
+```{r Cleanup from TRACKER FIELD DEFINITION (my.tfd)}
 # FROM TRACKER FIELD DEFINITION (my.tfd)
 # --------------------------------------
 # We can start by removing them from the my.tfd to be displayed as results. We don't do a standard fixed grep to "h" since that would get also the field type "math". Therefore, we grep with a regular expression for "h" at the beggining of the sentence/value and ending with that character also.
@@ -407,28 +413,54 @@ fields.headers.idx <- grep("^h$", my.tfd$type, fixed=FALSE)
 fields.headers.fieldId <- my.tfd[fields.headers.idx,"fieldId"]
 # Remove those from the Tracker definition table (my.tfd)
 my.tfd <- my.tfd[-fields.headers.idx,]
+#colnames(my.tfd)
+#head(my.tfd[order(my.tfd$fieldId, decreasing=FALSE),],10)
+```
 
+## Cleanup from FROM TRACKER DATA (my.df.c)
+
+```{r Cleanup from FROM TRACKER DATA (my.df.c)}
+# FROM TRACKER DATA (my.df.c)
+# ---------------------------
+# Remove those fields.headers.fieldId from the Tracker data (my.df.c)
+#fields.headers.fieldId
+#colnames(my.df.c)
+# Get the fieldId numbers from the colnames compound string (e.g. "INTRODUCCION -- 525")
+my.df.c.col.fieldId <- as.numeric(str_split_fixed(colnames(my.df.c), " -- ", n=2)[,2])
+# Get the column positions of the variables type Header
+my.df.c.col.fieldId.h <- my.df.c.col.fieldId %in% fields.headers.fieldId
+# Check that the results are the expected, and save that info in a vector for further checking and debugging
+my.df.c.colnames.h.old <- colnames(my.df.c)[my.df.c.col.fieldId.h]
+#length(my.df.c.colnames.h.old)
+my.df.c <- my.df.c[,!my.df.c.col.fieldId.h]
+#head(my.df.c[,1:15])
+#length(colnames(my.df.c))
+# Get rid also of the self-numbered id for the tracker
+#colnames(my.df.c)[1:10]
+#colnames(my.df.c.new)[1:10]
+my.df.c <- my.df.c[,-grep("#Id -- 1", colnames(my.df.c))]
+my.df.c <- my.df.c[,-grep("Comentarios -- 3", colnames(my.df.c))]
+#colnames(my.df.c.new)[1:10]
+```
+
+## Get the list of fields TRACKER FIELD DEFINITION (my.tfd) with Options
+
+```{r Get the list of fields TRACKER FIELD DEFINITION (my.tfd) with Options}
+# FROM TRACKER FIELD DEFINITION (my.tfd)
+# --------------------------------------
+#colnames(my.tfd)
+#head(my.tfd[order(my.tfd$fieldId, decreasing=FALSE),],10)
 # Indexes of the data frame that correspond to fields which contain value:label pairs (as options)
 fields.with.options.idx <- grep("options", my.tfd$options, fixed=TRUE)
   #head(my.tfd[fields.with.options.idx,])
   #head(my.tfd[fields.with.options.idx, c("type","options")])
 # FieldId's for those cases of tracker fields (fields which contain value:label pairs, as options)
 fields.with.options.fieldId <- my.tfd[fields.with.options.idx,"fieldId"]
+```
 
-# FROM TRACKER DATA (my.df.c)
-# ---------------------------
-# Remove those fields.headers.fieldId from the Tracker data (my.df.c)
-fields.headers.fieldId
-#colnames(my.df.c)
-# Get the fieldId numbers from the colnames compound string (e.g. "INTRODUCCION -- 525")
-my.df.c.col.fieldId <- as.numeric(str_split_fixed(colnames(my.df.c), " -- ", n=2)[,2])
-# Get the column positions of the variables type Header
-my.df.c.col.fieldId.h <- my.df.c.col.fieldId %in% fields.headers.fieldId
-# Check that the results are the expected
-#colnames(my.df.c)[my.df.c.col.fieldId.h]
-my.df.c2 <- my.df.c[,-my.df.c.col.fieldId.h]
-#head(my.df.c2)
+# Loop to add value/label pairs to all variables where needed
 
+```{r Loop to add value/label pairs to all variables where needed}
 # Get the column numbers of the variables that contain data that needs to be labelled properly
 # Identify the data columns that require value:label pair fixing
 #head(my.df.c)
