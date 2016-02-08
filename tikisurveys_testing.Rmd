@@ -326,42 +326,51 @@ if (check.one.field) {
     #table(as.numeric(my.tfd$fieldId)==9)
     #class(my.tfd$fieldId)
     
-    # Test for the error in names issue "Tabaco -- 19", for instance
+    #which(my.tfd$fieldId==549)
+    # [1] 8
+    #my.tfd[which(my.tfd$fieldId==549),"options"]
+    # "{\"options\":[\"0=NO\",\"1=Si\",\"99=NS\\/NC\"]}"
+    #table(as.numeric(my.tfd$fieldId)==549)
+    #class(my.tfd$fieldId)
+
+  # Test for the error in names issue "Tabaco -- 19", for instance
     #which(my.tfd$fieldId==19)
     # [1] 83
     #my.tfd[which(my.tfd$fieldId==19),"options"]
     # [1] "{\"options\":[\"0=No\",\"1=S\303\255\",\"99=ns/nc\"]}"
     #table(as.numeric(my.tfd$fieldId)==19)
     #class(my.tfd$fieldId)
-    my.options <- unlist(fromJSON(as.character(my.tfd[which(as.numeric(my.tfd$fieldId)==19),"options"])))
-    my.op.tmp <- unlist(str_split(my.options, "="))
+    my.options.test <- unlist(fromJSON(as.character(my.tfd[which(as.numeric(my.tfd$fieldId)==549),"options"])))
+    my.op.tmp.test <- unlist(str_split(my.options.test, "="))
     
     #head(my.df[,1:10])
     #length(colnames(my.df))
     #[1] 274
+    # my.tfd[8,]
     #str(my.df[,"Sexo -- 9"])
     
     #my.field.colname <- "Sexo -- 9" # As a Column name of my.df
-    my.field.colname <- "Tabaco -- 19" # As a Column name of my.df
-    my.field.name <- unlist(str_split(my.field.colname, " -- "))[1]
-    my.field.id <- unlist(str_split(my.field.colname, " -- "))[2]
-    my.field.data <- as.data.frame(my.df.c[,my.field.colname])[,1]
+    #my.field.colname <- "Tabaco -- 19" # As a Column name of my.df
+    my.field.colname.test <- "AnoxToxMet. Hidroelectro Tipo -- 549" # As a Column name of my.df
+    my.field.name.test <- unlist(str_split(my.field.colname.test, " -- "))[1]
+    my.field.id.test <- unlist(str_split(my.field.colname.test, " -- "))[2]
+    my.field.data.test <- as.data.frame(my.df.c[,my.field.colname.test])[,1]
     
     #Recode something like 
                       # "0"     "Mujer" "1"     "Varon" "99"    "ns/nc"
                       # into something like:
                       # "Mujer" = 0, "Varon" = 1, "ns/nc" = 99
     cc <- 0 # loop counter
-    my.options <- NULL
-    my.op.tmp.number <- NULL
-    my.op.tmp.label <- NULL
+    my.options.test <- NULL
+    my.op.tmp.number.test <- NULL
+    my.op.tmp.label.test <- NULL
     # We generate two clean vectors with the information of the numbers (option values in the form)
     # and the corresponding labels shown in the form, for further merging of the information 
     # in the memisc::as.item function.
-    for (ii in seq(1, length(my.op.tmp), by=2)) {
+    for (ii in seq(1, length(my.op.tmp.test), by=2)) {
       cc <- cc+1
-      my.op.tmp.number[cc] <- my.op.tmp[ii] 
-      my.op.tmp.label[cc]  <- my.op.tmp[ii+1]
+      my.op.tmp.number.test[cc] <- my.op.tmp.test[ii] 
+      my.op.tmp.label.test[cc]  <- my.op.tmp.test[ii+1]
     }
     
     #my.op.tmp.number # Clea vector of numbers (options in the form)
@@ -375,24 +384,48 @@ if (check.one.field) {
     #memisc::labels(my.field.data) <- c("\"Mujer\"" = 0,  "\"Varon\"" = 1,  "\"ns/nc\"" = 99)
     
     # Therefore we need to use the memisc:as.item function to properly merge all the required info in place
-    my.field.labels <- memisc::as.item(my.field.data, 
-                          labels=structure(my.op.tmp.number, 
-                                           names=my.op.tmp.label),
+    my.field.labels.test <- memisc::as.item(my.field.data.test, 
+                          labels=structure(my.op.tmp.number.test, 
+                                           names=my.op.tmp.label.test),
                           missing.values=99,
                           annotation = c(
-                            description=my.field.name
+                            description=my.field.name.test
                             )
                           )
-    memisc::labels(my.field.labels)
+    memisc::labels(my.field.labels.test)
     
-    #view_df(as.data.frame(my.field.labels))
-    my.field.data2 <- set_labels(my.field.data, memisc::labels(my.field.labels))
-    get_labels(my.field.data2, include.values = T,  include.non.labelled = TRUE)
-    #view_df(data.frame(my.field.data2))
-    #my.field.data3 <- set_labels(my.field.data, memisc::labels(my.field.labels), 
+    my.labels.df.test <- data.frame(as.numeric(my.op.tmp.number.test),
+                               as.character(my.op.tmp.label.test), stringsAsFactors=FALSE) 
+    colnames(my.labels.df.test) <- c("value", "label")
+    df1.test <- data.frame(my.field.data.test)
+    colnames(df1.test) <-"value"
+    df2.test <- my.labels.df.test
+     merged.df.test <- left_join(df1.test, df2.test, by = "value")
+
+        # SJMISC LABELS
+    # -----------------
+    # If there are more labels than levels of values, avoid the error.
+    if (length(table(my.field.labels.test)) != length(table(memisc::labels(my.field.labels.test)))) {
+        my.field.data.labels.sjmisc.test <- try(set_labels(my.field.data.test,
+                                                      merged.df.test$label)    , TRUE)
+                if (grepl("rror", my.field.data.labels.sjmisc.test, fixed=T)) {
+                          my.field.data.labels.sjmisc.test <- cbind(my.field.data.labels.sjmisc.test, t(df1))
+                  }
+
+    } else {
+        # Set also labels in the format expected by sjmisc with set_labels()
+        my.field.data.labels.sjmisc.test <- set_labels(my.field.data.test,
+                                                  memisc::labels(my.field.labels.test),
+                                                  force.labels = F, force.values = T)
+    }
+    #view_df(as.data.frame(my.field.labels.test))
+    my.field.data2.test <- set_labels(my.field.data.test, memisc::labels(my.field.labels.test))
+    get_labels(my.field.data2.test, include.values = T,  include.non.labelled = TRUE)
+    #view_df(data.frame(my.field.data2.test))
+    #my.field.data3 <- set_labels(my.field.data.test, memisc::labels(my.field.labels.test), 
     #                             force.labels = TRUE, force.values = FALSE)
-    #get_labels(my.field.data3, include.values = T,  include.non.labelled = TRUE)
-    #view_df(data.frame(my.field.data3))
+    #get_labels(my.field.data3.test, include.values = T,  include.non.labelled = TRUE)
+    #view_df(data.frame(my.field.data3.test))
 
 }
 
@@ -583,6 +616,15 @@ for (ff in 1:length(fields.with.options.fieldId)) {
     if (length(table(my.field.data)) != length(table(memisc::labels(my.field.data.labels.memisc)))) {
         my.field.data.labels.sjmisc <- try(set_labels(my.field.data,
                                                       merged.df$label)    , TRUE)
+        if (grepl("rror", my.field.data.labels.sjmisc, fixed=T)) {
+          my.field.data.labels.sjmisc <- gsub(my.field.data.labels.sjmisc,
+                                              "\n$", 
+                                              paste0(my.field.data.labels.sjmisc,
+                                                     "\n",
+                                                     df1, 
+                                                     collapse=",")
+                                              )
+        }
     } else {
         # Set also labels in the format expected by sjmisc with set_labels()
         my.field.data.labels.sjmisc <- set_labels(my.field.data,

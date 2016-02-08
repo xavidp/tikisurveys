@@ -70,10 +70,26 @@ img {
 
 <p>This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <a href="http://rmarkdown.rstudio.com" class="uri">http://rmarkdown.rstudio.com</a>.</p>
 <p>When you click the <strong>Knit</strong> button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:</p>
+<p>Interesting Slides from a presentation in VII Jornades de Usuarios de R (R-es) See Presentation from: <a href="http://files.meetup.com/1781511/useR%20Vignette%20-%20Accessing%20Databases%20from%20R%20-%2020110504.pdf">http://files.meetup.com/1781511/useR%20Vignette%20-%20Accessing%20Databases%20from%20R%20-%2020110504.pdf</a></p>
+<div id="basic-params" class="section level2">
+<h2>Basic params</h2>
+</div>
 <div id="install-packages" class="section level2">
 <h2>Install packages</h2>
+<div id="system-packages" class="section level3">
+<h3>System packages</h3>
+<p>You will need unaccent (which reuses iconv system command in the backend) to replace accented characters with their non-accented counterparts. The function iconv from the R package works well with data inside a data.frame, but it seems to produce NA when the string to make the replacement in, is the column name of the dataframe. Therefore, since we need to do this replacement for the data in the csv coming from the tracker, we will do so with a system command to that csv file before reading it into a data.frame in R.</p>
+<p>We will also replace some strings there with system program “sed” . See: * <a href="http://www.grymoire.com/Unix/Sed.html" class="uri">http://www.grymoire.com/Unix/Sed.html</a> * <a href="http://www.brunolinux.com/02-The_Terminal/Find_and%20Replace_with_Sed.html">http://www.brunolinux.com/02-The_Terminal/Find_and%20Replace_with_Sed.html</a></p>
+<p>You can install them in Debian based machines with:</p>
+<blockquote>
+<p>sudo apt-get install unaccent sed</p>
+</blockquote>
+</div>
+<div id="r-packages-from-cran-and-eventually-from-bioconductor" class="section level3">
+<h3>R packages (from CRAN and eventually from Bioconductor)</h3>
 <pre><code>## Loading required package: rCharts
 ## Loading required package: devtools
+## Loading required package: scales
 ## Loading required package: sjPlot</code></pre>
 <pre><code>## Warning: replacing previous import by 'grid::unit' when loading 'sjPlot'</code></pre>
 <pre><code>## Loading required package: sjmisc
@@ -85,15 +101,58 @@ img {
 ## Loading required package: RMySQL
 ## Loading required package: DBI
 ## Loading required package: jsonlite
+## Loading required package: readr
+## 
+## Attaching package: 'readr'
+## 
+## The following objects are masked from 'package:scales':
+## 
+##     col_factor, col_numeric
+## 
+## The following object is masked from 'package:rCharts':
+## 
+##     read_file
+## 
+## Loading required package: dplyr
+## 
+## Attaching package: 'dplyr'
+## 
+## The following objects are masked from 'package:data.table':
+## 
+##     between, last
+## 
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+## 
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+## 
 ## Loading required package: memisc
 ## Loading required package: lattice
 ## Loading required package: MASS
 ## 
+## Attaching package: 'MASS'
+## 
+## The following object is masked from 'package:dplyr':
+## 
+##     select
+## 
+## 
 ## Attaching package: 'memisc'
+## 
+## The following objects are masked from 'package:dplyr':
+## 
+##     collect, query, rename
 ## 
 ## The following object is masked from 'package:httr':
 ## 
 ##     content
+## 
+## The following object is masked from 'package:scales':
+## 
+##     percent
 ## 
 ## The following objects are masked from 'package:stats':
 ## 
@@ -102,6 +161,7 @@ img {
 ## The following object is masked from 'package:base':
 ## 
 ##     as.array</code></pre>
+</div>
 </div>
 <div id="load-data-from-rda-if-available" class="section level2">
 <h2>Load data from Rda (if available)</h2>
@@ -113,8 +173,8 @@ if (file.exists(file.path(getwd(), my.rda))) {
   load(file=file.path(getwd(), my.rda))
 }</code></pre>
 </div>
-<div id="fetch-data-from-the-trasplantaments-db" class="section level2">
-<h2>Fetch data from the trasplantaments db</h2>
+<div id="fetch-data-from-the-trasplantaments-db-into-a-.csv-file-on-disk" class="section level2">
+<h2>Fetch data from the trasplantaments db into a .csv file on disk</h2>
 <pre class="r"><code>aID &lt;- &quot;TikiTrackerDB&quot; # Analysis ID
 
 # If your tiki is not under localhost, adapt the path below for my.file
@@ -135,7 +195,7 @@ names(my.c)</code></pre>
 # [8] &quot;times&quot;       &quot;request&quot;     &quot;handle&quot; 
 
 str(content(my.c))</code></pre>
-<pre><code>##  raw [1:26000] 22 49 4e 54 ...</code></pre>
+<pre><code>##  raw [1:26001] 22 49 4e 54 ...</code></pre>
 <pre class="r"><code># Fetch a guess for the encoding of the data that came from Tiki. It should be UTS-8 in most cases, but you never know (it depends on the configuration set at the local tiki instance)
 my.c.encoding &lt;- stringi::stri_enc_detect(httr::content(my.c, &quot;raw&quot;))
 my.c.encoding</code></pre>
@@ -156,120 +216,278 @@ my.c.encoding</code></pre>
 <pre class="r"><code>#my.df &lt;- content(my.c, &quot;text&quot;, encoding = my.c.encoding)
 
 # Fetch content in binari form and save to plain text file on disk
-bin &lt;- httr::content(my.c, &quot;raw&quot;)
-my.tracker.file &lt;- paste0(&quot;tracker_&quot;, my.trackerId,&quot;_&quot;, format(Sys.Date(), &quot;%y%m%d&quot;),&quot;.csv&quot;)
-writeBin(bin, file.path(getwd(), my.tracker.file))
-
-my.df &lt;- fread(file.path(getwd(), my.tracker.file), stringsAsFactors=FALSE, data.table=F)
-head(my.df[,1:10])</code></pre>
-<pre><code>##   INTRODUCCIÓN -- 525                         #Id -- 1 Editado por -- 2
-## 1                     &lt;span class='formunit'&gt;#&lt;/span&gt;1           becari
-## 2                     &lt;span class='formunit'&gt;#&lt;/span&gt;2            sandi
-## 3                     &lt;span class='formunit'&gt;#&lt;/span&gt;3            admin
-## 4                     &lt;span class='formunit'&gt;#&lt;/span&gt;5            sandi
-## 5                     &lt;span class='formunit'&gt;#&lt;/span&gt;6            sandi
-## 6                     &lt;span class='formunit'&gt;#&lt;/span&gt;7            sandi
-##                                                                                         Comentarios -- 3
-## 1                                                                                         Prueba 1 (UEB)
-## 2 Prueba de registro para que quede en estado &quot;&quot;&quot;&quot;ongoing - en curso (pendiente de acabar y validar)&quot;&quot;&quot;&quot;
-## 3                                                  Prueba 3 UEB (item completo y validado (item cerrado)
-## 4                                                                                                       
-## 5                                                                                                       
-## 6                                                                                                       
-##   PACIENTE -- 4 DATOS BASICOS (Paciente) -- 5        Nombre -- 6  NHC -- 7
-## 1                                             ABC (Prueba 1 UEB) 485628795
-## 2                                             DEF (Prueba 2 UEB)     99999
-## 3                                             FGH (Prueba 3 UEB) 895814478
-## 4                                                           JBRV  11912584
-## 5                                                            ASM  14356139
-## 6                                                            EBE  11767725
-##   Fecha nacimiento -- 8 Sexo -- 9
-## 1            1932-03-05         1
-## 2            1972-01-16         1
-## 3            1914-01-01         0
-## 4            1944-05-19         1
-## 5            1942-10-13         1
-## 6            1927-03-11         0</code></pre>
+bin &lt;- httr::content(my.c, &quot;raw&quot;, encoding=&quot;UTF-8&quot;)
+my.base.filename &lt;- paste0(&quot;trk&quot;, my.trackerId,&quot;_&quot;, format(Sys.Date(), &quot;%y%m%d&quot;))
+writeBin(bin, file.path(getwd(), dataRelDir, paste0(my.base.filename, &quot;_my.df.dirty.csv&quot;)))</code></pre>
 </div>
 <div id="massage-and-cleanup-the-dataset" class="section level2">
 <h2>massage and cleanup the dataset</h2>
-<p>We apply an “apply” function to the whole data frame just for the sake of practising with the apply function itself, since the gsub would do it on the 2nd column, which is the only one selfnumbered which carries this html markup to show the “#” sign in front of it, as defined in teh Tracker Field definition.</p>
-<pre class="r"><code>gsub(&quot;&lt;span class='formunit'&gt;#&lt;/span&gt;&quot;, &quot;&quot;, my.df[1,2], fixed=T)</code></pre>
-<pre><code>## [1] &quot;1&quot;</code></pre>
-<pre class="r"><code>my.df.c &lt;- apply(my.df, 2, gsub, pattern=&quot;&lt;span class='formunit'&gt;#&lt;/span&gt;&quot;, replacement=&quot;&quot;, fixed=T)
+<p>We tried applying an “apply” function to the whole data frame just for the sake of practising with the apply function itself, since the gsub would do it on the 2nd column, which is the only one selfnumbered which carries this html markup to show the “#” sign in front of it, as defined in the Tracker Field definition. However, since the apply converts the dataframe into a matrix, and classes of the data.frme variables get lost, we avoid it, and we use a for loop and replace on site</p>
+<pre class="r"><code>Sys.setlocale('LC_ALL','C') # Needed to avoid this warning message: &quot;input string 90 is invalid in this locale&quot;, etc. Adn this line had this code: &quot;1=S\xed\&quot; (meaning &quot;1=S&lt;U+00ED&gt;&quot;).</code></pre>
+<pre><code>## [1] &quot;LC_CTYPE=C;LC_NUMERIC=C;LC_TIME=C;LC_COLLATE=C;LC_MONETARY=C;LC_MESSAGES=ca_ES.UTF-8;LC_PAPER=ca_ES.UTF-8;LC_NAME=C;LC_ADDRESS=C;LC_TELEPHONE=C;LC_MEASUREMENT=ca_ES.UTF-8;LC_IDENTIFICATION=C&quot;</code></pre>
+<pre class="r"><code>## This command with iconv after the csv is read into R will fail for colnames (it produces NA). 
+#  iconv(colnames(my.df), to='ASCII//TRANSLIT')
+## Therefore, solve this issue with a system call to unnaccent (reuing iconv in the backend)
+#  sudo apt-get install unaccent
+# unaccent UTF-8 &lt; file &gt; file.unaccented
+my.df.file.dirty &lt;- file.path(getwd(), dataRelDir, paste0(my.base.filename, &quot;_my.df.dirty.csv&quot;))
+my.df.file.clean &lt;- file.path(getwd(), dataRelDir, paste0(my.base.filename, &quot;_my.df.clean.csv&quot;))
+system(paste0(&quot;unaccent UTF-8 &lt; &quot;, my.df.file.dirty, &quot; &gt; &quot;, my.df.file.clean))
+# Replace all html tags, such as &quot;&lt;span class='formunit'&gt;#&lt;/span&gt;&quot; with sed at system level
+# sed 's/FINDSTRING/REPLACESTRING/g' $fl.old &gt; $fl
+sed.command &lt;- paste0(&quot;sed -i -e 's/&lt;[^&gt;]*&gt;//g' &quot;, my.df.file.clean)
+system(sed.command)
+sed.command &lt;- paste0(&quot;sed -i -e 's/%%%//g' &quot;, my.df.file.clean)
+system(sed.command)
+sed.command &lt;- paste0(&quot;sed -i -e 's/\t//g' &quot;, my.df.file.clean)
+system(sed.command)
+sed.command &lt;- paste0(&quot;sed -i -e 's/?nbsp;//g' &quot;, my.df.file.clean)
+system(sed.command)
+
+
+
+# Read the csv file
+#my.df &lt;- fread(file.path(getwd(), dataRelDir, my.tracker.file), stringsAsFactors=FALSE, data.table=F)
+# Replace data.table::fread efficient function with readr::read_csv, which self recognizes data types, while standard read.csv or fread does not. 
+my.df &lt;- readr::read_csv(my.df.file.clean)
+#str(my.df)
+head(my.df[,1:10])</code></pre>
+<pre><code>## Source: local data frame [6 x 10]
+## 
+##   INTRODUCCION -- 525 #Id -- 1 Editado por -- 2
+##                 (chr)    (chr)            (chr)
+## 1                           #1           becari
+## 2                           #2            sandi
+## 3                           #3            admin
+## 4                           #5            sandi
+## 5                           #6            sandi
+## 6                           #7            sandi
+## Variables not shown: Comentarios -- 3 (chr), PACIENTE -- 4 (chr), DATOS
+##   BASICOS (Paciente) -- 5 (chr), Nombre -- 6 (chr), NHC -- 7 (int), Fecha
+##   nacimiento -- 8 (date), Sexo -- 9 (int)</code></pre>
+<pre class="r"><code>#class(gsub(&quot;&lt;span class='formunit'&gt;#&lt;/span&gt;&quot;, &quot;&quot;, my.df[,2], fixed=T))
+# Clean col 2 (&quot;#Id -- 1&quot;, self numbered column in Tiki with this annoying span html class)
+my.df[,&quot;#Id -- 1&quot;] &lt;- gsub(&quot;&lt;span class='formunit'&gt;#&lt;/span&gt;&quot;, &quot;&quot;, my.df[,&quot;#Id -- 1&quot;], fixed=T)
+#my.df[,2] &lt;- str_replace_all(my.df[,2], &quot;&lt;span class='formunit'&gt;#&lt;/span&gt;&quot;, &quot;&quot;)
+#colnames(my.df)
+#iconv(colnames(my.df), to='ASCII//TRANSLIT')
+
+#my.df.c &lt;- apply(my.df, 2, gsub, pattern=&quot;&lt;span class='formunit'&gt;#&lt;/span&gt;&quot;, replacement=&quot;&quot;, fixed=T)
+
+# Convert the tbl_df class from readr package into a standard data.frame class to avoid some issues later on of functions for other packages not expecting to work with such tbl_df class
+my.df.c &lt;- as.data.frame(my.df)
 my.df.c[,1:10]</code></pre>
-<pre><code>##       INTRODUCCIÓN -- 525 #Id -- 1 Editado por -- 2
-##  [1,] &quot;&quot;                  &quot;1&quot;      &quot;becari&quot;        
-##  [2,] &quot;&quot;                  &quot;2&quot;      &quot;sandi&quot;         
-##  [3,] &quot;&quot;                  &quot;3&quot;      &quot;admin&quot;         
-##  [4,] &quot;&quot;                  &quot;5&quot;      &quot;sandi&quot;         
-##  [5,] &quot;&quot;                  &quot;6&quot;      &quot;sandi&quot;         
-##  [6,] &quot;&quot;                  &quot;7&quot;      &quot;sandi&quot;         
-##  [7,] &quot;&quot;                  &quot;8&quot;      &quot;sandi&quot;         
-##  [8,] &quot;&quot;                  &quot;9&quot;      &quot;sandi&quot;         
-##  [9,] &quot;&quot;                  &quot;10&quot;     &quot;sandi&quot;         
-## [10,] &quot;&quot;                  &quot;11&quot;     &quot;sandi&quot;         
-## [11,] &quot;&quot;                  &quot;12&quot;     &quot;sandi&quot;         
-## [12,] &quot;&quot;                  &quot;13&quot;     &quot;sandi&quot;         
-## [13,] &quot;&quot;                  &quot;14&quot;     &quot;sandi&quot;         
-## [14,] &quot;&quot;                  &quot;15&quot;     &quot;sandi&quot;         
-## [15,] &quot;&quot;                  &quot;16&quot;     &quot;sandi&quot;         
-## [16,] &quot;&quot;                  &quot;17&quot;     &quot;sandi&quot;         
-##       Comentarios -- 3                                                                                                
-##  [1,] &quot;Prueba 1 (UEB)&quot;                                                                                                
-##  [2,] &quot;Prueba de registro para que quede en estado \&quot;\&quot;\&quot;\&quot;ongoing - en curso (pendiente de acabar y validar)\&quot;\&quot;\&quot;\&quot;&quot;
-##  [3,] &quot;Prueba 3 UEB (item completo y validado (item cerrado)&quot;                                                         
-##  [4,] &quot;&quot;                                                                                                              
-##  [5,] &quot;&quot;                                                                                                              
-##  [6,] &quot;&quot;                                                                                                              
-##  [7,] &quot;&quot;                                                                                                              
-##  [8,] &quot;&quot;                                                                                                              
-##  [9,] &quot;&quot;                                                                                                              
-## [10,] &quot;&quot;                                                                                                              
-## [11,] &quot;&quot;                                                                                                              
-## [12,] &quot;&quot;                                                                                                              
-## [13,] &quot;&quot;                                                                                                              
-## [14,] &quot;&quot;                                                                                                              
-## [15,] &quot;&quot;                                                                                                              
-## [16,] &quot;&quot;                                                                                                              
-##       PACIENTE -- 4 DATOS BASICOS (Paciente) -- 5 Nombre -- 6         
-##  [1,] &quot;&quot;            &quot;&quot;                            &quot;ABC (Prueba 1 UEB)&quot;
-##  [2,] &quot;&quot;            &quot;&quot;                            &quot;DEF (Prueba 2 UEB)&quot;
-##  [3,] &quot;&quot;            &quot;&quot;                            &quot;FGH (Prueba 3 UEB)&quot;
-##  [4,] &quot;&quot;            &quot;&quot;                            &quot;JBRV&quot;              
-##  [5,] &quot;&quot;            &quot;&quot;                            &quot;ASM&quot;               
-##  [6,] &quot;&quot;            &quot;&quot;                            &quot;EBE&quot;               
-##  [7,] &quot;&quot;            &quot;&quot;                            &quot;&quot;                  
-##  [8,] &quot;&quot;            &quot;&quot;                            &quot;DHA&quot;               
-##  [9,] &quot;&quot;            &quot;&quot;                            &quot;DHA&quot;               
-## [10,] &quot;&quot;            &quot;&quot;                            &quot;MRF&quot;               
-## [11,] &quot;&quot;            &quot;&quot;                            &quot;GAP&quot;               
-## [12,] &quot;&quot;            &quot;&quot;                            &quot;NFM&quot;               
-## [13,] &quot;&quot;            &quot;&quot;                            &quot;CFP&quot;               
-## [14,] &quot;&quot;            &quot;&quot;                            &quot;FHG&quot;               
-## [15,] &quot;&quot;            &quot;&quot;                            &quot;FBJ&quot;               
-## [16,] &quot;&quot;            &quot;&quot;                            &quot;ELM&quot;               
-##       NHC -- 7    Fecha nacimiento -- 8 Sexo -- 9
-##  [1,] &quot;485628795&quot; &quot;1932-03-05&quot;          &quot;1&quot;      
-##  [2,] &quot;99999&quot;     &quot;1972-01-16&quot;          &quot;1&quot;      
-##  [3,] &quot;895814478&quot; &quot;1914-01-01&quot;          &quot;0&quot;      
-##  [4,] &quot;11912584&quot;  &quot;1944-05-19&quot;          &quot;1&quot;      
-##  [5,] &quot;14356139&quot;  &quot;1942-10-13&quot;          &quot;1&quot;      
-##  [6,] &quot;11767725&quot;  &quot;1927-03-11&quot;          &quot;0&quot;      
-##  [7,] &quot;&quot;          &quot;&quot;                    &quot;&quot;       
-##  [8,] &quot;13351240&quot;  &quot;1970-08-09&quot;          &quot;0&quot;      
-##  [9,] &quot;11865913&quot;  &quot;1970-08-09&quot;          &quot;0&quot;      
-## [10,] &quot;17279737&quot;  &quot;1956-11-22&quot;          &quot;1&quot;      
-## [11,] &quot;14033642&quot;  &quot;1943-03-18&quot;          &quot;1&quot;      
-## [12,] &quot;17468438&quot;  &quot;1974-12-17&quot;          &quot;0&quot;      
-## [13,] &quot;14704880&quot;  &quot;1938-02-19&quot;          &quot;0&quot;      
-## [14,] &quot;12198136&quot;  &quot;1950-08-18&quot;          &quot;1&quot;      
-## [15,] &quot;11783592&quot;  &quot;2015-11-16&quot;          &quot;1&quot;      
-## [16,] &quot;11714234&quot;  &quot;1934-02-28&quot;          &quot;1&quot;</code></pre>
-</div>
-<div id="interesting-slides-from-a-presentation-in-vii-jornades-de-usuarios-de-r-r-es" class="section level1">
-<h1>Interesting Slides from a presentation in VII Jornades de Usuarios de R (R-es)</h1>
-<p>See Presentation from: <a href="http://files.meetup.com/1781511/useR%20Vignette%20-%20Accessing%20Databases%20from%20R%20-%2020110504.pdf">http://files.meetup.com/1781511/useR%20Vignette%20-%20Accessing%20Databases%20from%20R%20-%2020110504.pdf</a></p>
+<pre><code>##    INTRODUCCION -- 525
+## 1                     
+## 2                     
+## 3                     
+## 4                     
+## 5                     
+## 6                     
+## 7                     
+## 8                     
+## 9                     
+## 10                    
+## 11                    
+## 12                    
+## 13                    
+## 14                    
+## 15                    
+## 16                    
+##                                                                                                     #Id -- 1
+## 1  c(&quot;#1&quot;, &quot;#2&quot;, &quot;#3&quot;, &quot;#5&quot;, &quot;#6&quot;, &quot;#7&quot;, &quot;#8&quot;, &quot;#9&quot;, &quot;#10&quot;, &quot;#11&quot;, &quot;#12&quot;, &quot;#13&quot;, &quot;#14&quot;, &quot;#15&quot;, &quot;#16&quot;, &quot;#17&quot;)
+## 2  c(&quot;#1&quot;, &quot;#2&quot;, &quot;#3&quot;, &quot;#5&quot;, &quot;#6&quot;, &quot;#7&quot;, &quot;#8&quot;, &quot;#9&quot;, &quot;#10&quot;, &quot;#11&quot;, &quot;#12&quot;, &quot;#13&quot;, &quot;#14&quot;, &quot;#15&quot;, &quot;#16&quot;, &quot;#17&quot;)
+## 3  c(&quot;#1&quot;, &quot;#2&quot;, &quot;#3&quot;, &quot;#5&quot;, &quot;#6&quot;, &quot;#7&quot;, &quot;#8&quot;, &quot;#9&quot;, &quot;#10&quot;, &quot;#11&quot;, &quot;#12&quot;, &quot;#13&quot;, &quot;#14&quot;, &quot;#15&quot;, &quot;#16&quot;, &quot;#17&quot;)
+## 4  c(&quot;#1&quot;, &quot;#2&quot;, &quot;#3&quot;, &quot;#5&quot;, &quot;#6&quot;, &quot;#7&quot;, &quot;#8&quot;, &quot;#9&quot;, &quot;#10&quot;, &quot;#11&quot;, &quot;#12&quot;, &quot;#13&quot;, &quot;#14&quot;, &quot;#15&quot;, &quot;#16&quot;, &quot;#17&quot;)
+## 5  c(&quot;#1&quot;, &quot;#2&quot;, &quot;#3&quot;, &quot;#5&quot;, &quot;#6&quot;, &quot;#7&quot;, &quot;#8&quot;, &quot;#9&quot;, &quot;#10&quot;, &quot;#11&quot;, &quot;#12&quot;, &quot;#13&quot;, &quot;#14&quot;, &quot;#15&quot;, &quot;#16&quot;, &quot;#17&quot;)
+## 6  c(&quot;#1&quot;, &quot;#2&quot;, &quot;#3&quot;, &quot;#5&quot;, &quot;#6&quot;, &quot;#7&quot;, &quot;#8&quot;, &quot;#9&quot;, &quot;#10&quot;, &quot;#11&quot;, &quot;#12&quot;, &quot;#13&quot;, &quot;#14&quot;, &quot;#15&quot;, &quot;#16&quot;, &quot;#17&quot;)
+## 7  c(&quot;#1&quot;, &quot;#2&quot;, &quot;#3&quot;, &quot;#5&quot;, &quot;#6&quot;, &quot;#7&quot;, &quot;#8&quot;, &quot;#9&quot;, &quot;#10&quot;, &quot;#11&quot;, &quot;#12&quot;, &quot;#13&quot;, &quot;#14&quot;, &quot;#15&quot;, &quot;#16&quot;, &quot;#17&quot;)
+## 8  c(&quot;#1&quot;, &quot;#2&quot;, &quot;#3&quot;, &quot;#5&quot;, &quot;#6&quot;, &quot;#7&quot;, &quot;#8&quot;, &quot;#9&quot;, &quot;#10&quot;, &quot;#11&quot;, &quot;#12&quot;, &quot;#13&quot;, &quot;#14&quot;, &quot;#15&quot;, &quot;#16&quot;, &quot;#17&quot;)
+## 9  c(&quot;#1&quot;, &quot;#2&quot;, &quot;#3&quot;, &quot;#5&quot;, &quot;#6&quot;, &quot;#7&quot;, &quot;#8&quot;, &quot;#9&quot;, &quot;#10&quot;, &quot;#11&quot;, &quot;#12&quot;, &quot;#13&quot;, &quot;#14&quot;, &quot;#15&quot;, &quot;#16&quot;, &quot;#17&quot;)
+## 10 c(&quot;#1&quot;, &quot;#2&quot;, &quot;#3&quot;, &quot;#5&quot;, &quot;#6&quot;, &quot;#7&quot;, &quot;#8&quot;, &quot;#9&quot;, &quot;#10&quot;, &quot;#11&quot;, &quot;#12&quot;, &quot;#13&quot;, &quot;#14&quot;, &quot;#15&quot;, &quot;#16&quot;, &quot;#17&quot;)
+## 11 c(&quot;#1&quot;, &quot;#2&quot;, &quot;#3&quot;, &quot;#5&quot;, &quot;#6&quot;, &quot;#7&quot;, &quot;#8&quot;, &quot;#9&quot;, &quot;#10&quot;, &quot;#11&quot;, &quot;#12&quot;, &quot;#13&quot;, &quot;#14&quot;, &quot;#15&quot;, &quot;#16&quot;, &quot;#17&quot;)
+## 12 c(&quot;#1&quot;, &quot;#2&quot;, &quot;#3&quot;, &quot;#5&quot;, &quot;#6&quot;, &quot;#7&quot;, &quot;#8&quot;, &quot;#9&quot;, &quot;#10&quot;, &quot;#11&quot;, &quot;#12&quot;, &quot;#13&quot;, &quot;#14&quot;, &quot;#15&quot;, &quot;#16&quot;, &quot;#17&quot;)
+## 13 c(&quot;#1&quot;, &quot;#2&quot;, &quot;#3&quot;, &quot;#5&quot;, &quot;#6&quot;, &quot;#7&quot;, &quot;#8&quot;, &quot;#9&quot;, &quot;#10&quot;, &quot;#11&quot;, &quot;#12&quot;, &quot;#13&quot;, &quot;#14&quot;, &quot;#15&quot;, &quot;#16&quot;, &quot;#17&quot;)
+## 14 c(&quot;#1&quot;, &quot;#2&quot;, &quot;#3&quot;, &quot;#5&quot;, &quot;#6&quot;, &quot;#7&quot;, &quot;#8&quot;, &quot;#9&quot;, &quot;#10&quot;, &quot;#11&quot;, &quot;#12&quot;, &quot;#13&quot;, &quot;#14&quot;, &quot;#15&quot;, &quot;#16&quot;, &quot;#17&quot;)
+## 15 c(&quot;#1&quot;, &quot;#2&quot;, &quot;#3&quot;, &quot;#5&quot;, &quot;#6&quot;, &quot;#7&quot;, &quot;#8&quot;, &quot;#9&quot;, &quot;#10&quot;, &quot;#11&quot;, &quot;#12&quot;, &quot;#13&quot;, &quot;#14&quot;, &quot;#15&quot;, &quot;#16&quot;, &quot;#17&quot;)
+## 16 c(&quot;#1&quot;, &quot;#2&quot;, &quot;#3&quot;, &quot;#5&quot;, &quot;#6&quot;, &quot;#7&quot;, &quot;#8&quot;, &quot;#9&quot;, &quot;#10&quot;, &quot;#11&quot;, &quot;#12&quot;, &quot;#13&quot;, &quot;#14&quot;, &quot;#15&quot;, &quot;#16&quot;, &quot;#17&quot;)
+##    Editado por -- 2
+## 1            becari
+## 2             sandi
+## 3             admin
+## 4             sandi
+## 5             sandi
+## 6             sandi
+## 7             sandi
+## 8             sandi
+## 9             sandi
+## 10            sandi
+## 11            sandi
+## 12            sandi
+## 13            sandi
+## 14            sandi
+## 15            sandi
+## 16            sandi
+##                                                                                      Comentarios -- 3
+## 1                                                                                      Prueba 1 (UEB)
+## 2  Prueba de registro para que quede en estado &quot;&quot;ongoing - en curso (pendiente de acabar y validar)&quot;&quot;
+## 3                                               Prueba 3 UEB (item completo y validado (item cerrado)
+## 4                                                                                                    
+## 5                                                                                                    
+## 6                                                                                                    
+## 7                                                                                                    
+## 8                                                                                                    
+## 9                                                                                                    
+## 10                                                                                                   
+## 11                                                                                                   
+## 12                                                                                                   
+## 13                                                                                                   
+## 14                                                                                                   
+## 15                                                                                                   
+## 16                                                                                                   
+##    PACIENTE -- 4 DATOS BASICOS (Paciente) -- 5        Nombre -- 6
+## 1                                              ABC (Prueba 1 UEB)
+## 2                                              DEF (Prueba 2 UEB)
+## 3                                              FGH (Prueba 3 UEB)
+## 4                                                            JBRV
+## 5                                                             ASM
+## 6                                                             EBE
+## 7                                                                
+## 8                                                             DHA
+## 9                                                             DHA
+## 10                                                            MRF
+## 11                                                            GAP
+## 12                                                            NFM
+## 13                                                            CFP
+## 14                                                            FHG
+## 15                                                            FBJ
+## 16                                                            ELM
+##     NHC -- 7 Fecha nacimiento -- 8 Sexo -- 9
+## 1  485628795            1932-03-05         1
+## 2      99999            1972-01-16         1
+## 3  895814478            1914-01-01         0
+## 4   11912584            1944-05-19         1
+## 5   14356139            1942-10-13         1
+## 6   11767725            1927-03-11         0
+## 7         NA                  &lt;NA&gt;        NA
+## 8   13351240            1970-08-09         0
+## 9   11865913            1970-08-09         0
+## 10  17279737            1956-11-22         1
+## 11  14033642            1943-03-18         1
+## 12  17468438            1974-12-17         0
+## 13  14704880            1938-02-19         0
+## 14  12198136            1950-08-18         1
+## 15  11783592            2015-11-16         1
+## 16  11714234            1934-02-28         1</code></pre>
+<pre class="r"><code>str(my.df.c)</code></pre>
+<pre><code>## 'data.frame':    16 obs. of  274 variables:
+##  $ INTRODUCCION -- 525                     : chr  &quot;&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ #Id -- 1                                : chr  &quot;c(\&quot;#1\&quot;, \&quot;#2\&quot;, \&quot;#3\&quot;, \&quot;#5\&quot;, \&quot;#6\&quot;, \&quot;#7\&quot;, \&quot;#8\&quot;, \&quot;#9\&quot;, \&quot;#10\&quot;, \&quot;#11\&quot;, \&quot;#12\&quot;, \&quot;#13\&quot;, \&quot;#14\&quot;, \&quot;#15\&quot;, \&quot;#16\&quot;&quot;| __truncated__ &quot;c(\&quot;#1\&quot;, \&quot;#2\&quot;, \&quot;#3\&quot;, \&quot;#5\&quot;, \&quot;#6\&quot;, \&quot;#7\&quot;, \&quot;#8\&quot;, \&quot;#9\&quot;, \&quot;#10\&quot;, \&quot;#11\&quot;, \&quot;#12\&quot;, \&quot;#13\&quot;, \&quot;#14\&quot;, \&quot;#15\&quot;, \&quot;#16\&quot;&quot;| __truncated__ &quot;c(\&quot;#1\&quot;, \&quot;#2\&quot;, \&quot;#3\&quot;, \&quot;#5\&quot;, \&quot;#6\&quot;, \&quot;#7\&quot;, \&quot;#8\&quot;, \&quot;#9\&quot;, \&quot;#10\&quot;, \&quot;#11\&quot;, \&quot;#12\&quot;, \&quot;#13\&quot;, \&quot;#14\&quot;, \&quot;#15\&quot;, \&quot;#16\&quot;&quot;| __truncated__ &quot;c(\&quot;#1\&quot;, \&quot;#2\&quot;, \&quot;#3\&quot;, \&quot;#5\&quot;, \&quot;#6\&quot;, \&quot;#7\&quot;, \&quot;#8\&quot;, \&quot;#9\&quot;, \&quot;#10\&quot;, \&quot;#11\&quot;, \&quot;#12\&quot;, \&quot;#13\&quot;, \&quot;#14\&quot;, \&quot;#15\&quot;, \&quot;#16\&quot;&quot;| __truncated__ ...
+##  $ Editado por -- 2                        : chr  &quot;becari&quot; &quot;sandi&quot; &quot;admin&quot; &quot;sandi&quot; ...
+##  $ Comentarios -- 3                        : chr  &quot;Prueba 1 (UEB)&quot; &quot;Prueba de registro para que quede en estado \&quot;\&quot;ongoing - en curso (pendiente de acabar y validar)\&quot;\&quot;&quot; &quot;Prueba 3 UEB (item completo y validado (item cerrado)&quot; &quot;&quot; ...
+##  $ PACIENTE -- 4                           : chr  &quot;&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ DATOS BASICOS (Paciente) -- 5           : chr  &quot;&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ Nombre -- 6                             : chr  &quot;ABC (Prueba 1 UEB)&quot; &quot;DEF (Prueba 2 UEB)&quot; &quot;FGH (Prueba 3 UEB)&quot; &quot;JBRV&quot; ...
+##  $ NHC -- 7                                : int  485628795 99999 895814478 11912584 14356139 11767725 NA 13351240 11865913 17279737 ...
+##  $ Fecha nacimiento -- 8                   : Date, format: &quot;1932-03-05&quot; &quot;1972-01-16&quot; ...
+##  $ Sexo -- 9                               : int  1 1 0 1 1 0 NA 0 0 1 ...
+##  $ Talla (cm) -- 10                        : int  180 187 123 165 160 NA NA 160 160 NA ...
+##  $ Peso (kg) -- 11                         : int  93 97 34 70 70 NA NA 59 59 NA ...
+##  $ IMC (kg/m2) -- 12                       : num  28.7 27.7 22.5 25.7 27.3 0 0 23 23 0 ...
+##  $ Etnia -- 13                             : int  1 1 2 1 1 1 NA 1 1 1 ...
+##  $ Otra etnia -- 495                       : int  0 NA NA NA NA NA NA NA NA NA ...
+##  $ Rankin previo (n) -- 14                 : int  0 1 0 0 4 0 NA 0 0 0 ...
+##  $ COMORBILIDAD -- 15                      : chr  &quot;&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ HTA -- 16                               : int  2 NA 1 2 1 1 NA 1 1 1 ...
+##  $ DM -- 17                                : int  1 NA 1 0 0 0 NA 0 0 0 ...
+##  $ Enol (consumo de riesgo) -- 18          : int  1 NA 1 0 0 0 NA 0 0 0 ...
+##  $ Tabaco -- 19                            : int  1 NA 1 0 0 0 NA 1 1 0 ...
+##  $ Habitos toxicos -- 20                   : chr  &quot;2, 3&quot; &quot;&quot; &quot;4, 5&quot; &quot;&quot; ...
+##  $ Otros toxicos -- 490                    : chr  &quot;&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ Neo -- 21                               : int  1 NA 1 0 0 0 NA 0 0 0 ...
+##  $ I. Renal -- 22                          : int  1 NA 1 0 0 0 NA 0 0 0 ...
+##  $ Hepatopatia -- 23                       : int  1 NA 1 0 0 0 NA 0 0 0 ...
+##  $ Dislipemia -- 24                        : int  1 NA 1 0 1 1 NA 0 0 0 ...
+##  $ Cardiopatia isquemica -- 25             : int  1 NA 1 0 1 0 NA 0 0 0 ...
+##  $ Tto. antitrombotico -- 26               : int  2 NA 1 1 0 0 NA 0 0 0 ...
+##  $ Otras comorbilidades -- 507             : chr  &quot;&quot; &quot;&quot; &quot;qwe&quot; &quot;&quot; ...
+##  $ Contraindic. Donacion -- 27             : chr  &quot;0, 1, 3&quot; &quot;5, 7&quot; &quot;Riesgo social&quot; &quot;&quot; ...
+##  $ Otras contraindicaciones -- 506         : chr  &quot;&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ INGRESO -- 28                           : chr  &quot;&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ DATOS BASICOS (Ingreso) -- 29           : chr  &quot;&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ Fecha ingreso hospital -- 30            : POSIXct, format: &quot;2014-04-06 05:04:00&quot; &quot;2012-01-16 12:00:00&quot; ...
+##  $ Hospital ingreso -- 34                  : int  2 2 3 1 1 1 NA 1 1 1 ...
+##  $ Otro lugar ingr. -- 491                 : chr  &quot;&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ Servicio ingreso -- 497                 : int  4 0 3 1 1 1 NA 1 1 3 ...
+##  $ Otro servicio ingr. -- 498              : chr  &quot;&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ Cama / Box -- 458                       : chr  &quot;58&quot; &quot;312&quot; &quot;58&quot; &quot;&quot; ...
+##  $ Fecha ingreso UCI -- 31                 : POSIXct, format: &quot;2015-09-29 15:26:00&quot; &quot;2012-02-16 15:26:00&quot; ...
+##  $ Hospital ingr. UCI -- 487               : int  2 2 2 1 NA NA NA NA 1 NA ...
+##  $ DETECCION -- 456                        : chr  &quot;&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ Fecha deteccion -- 32                   : POSIXct, format: &quot;2015-09-29 15:26:00&quot; &quot;2015-09-29 15:26:00&quot; ...
+##  $ Hospital detec. -- 449                  : int  2 NA 3 1 1 1 NA NA 1 1 ...
+##  $ Otro lugar detec. -- 493                : chr  &quot;&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ Servicio detec. -- 35                   : int  2 NA 5 0 1 1 NA NA 0 3 ...
+##  $ Otro servicio detec. -- 492             : chr  &quot;&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ GCS deteccion -- 33                     : int  5 NA 5 4 7 7 NA NA 5 5 ...
+##  $ Componente M-GCS detec. -- 431          : int  5 NA 5 1 4 5 NA NA 3 3 ...
+##  $ Sedado detec. -- 471                    : int  1 NA 1 0 0 0 NA NA 1 99 ...
+##  $ Reflejo corneal detec. -- 432           : int  0 NA 1 1 1 1 NA NA 1 1 ...
+##  $ Reflejo tusigeno detec. -- 433          : int  0 NA 1 1 1 1 NA NA 1 1 ...
+##  $ Pupilas detec. -- 434                   : int  1 NA 1 0 0 0 NA NA 0 1 ...
+##  $ Inestabilidad hemodinam. detec. -- 435  : int  1 NA 1 0 0 0 NA NA 0 0 ...
+##  $ Alteracion funcion hepat. detec. -- 438 : int  1 NA 1 0 0 0 NA NA 0 0 ...
+##  $ Pa/Fi02 detec. -- 439                   : int  5 NA 6 0 300 NA NA NA NA NA ...
+##  $ Tiempo de deteccion -- 48               : chr  &quot;1y 5m 3w 3d 8h 22m&quot; &quot;3y 8m 1w 6d 18h 26m&quot; &quot;11y 2m 4w 1d 22h 27m&quot; &quot;1w 6h&quot; ...
+##  $ Funcion renal detec. -- 448             : int  1 NA 1 6 6 6 NA NA 6 6 ...
+##  $ ENTREVISTA -- 457                       : chr  &quot;&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ Fecha entrevista previa -- 459          : POSIXct, format: &quot;2014-11-05 07:05:00&quot; NA ...
+##  $ Aceptacion familia -- 38                : int  1 NA 1 NA 1 0 NA NA NA 0 ...
+##  $ Hospital entrev. -- 451                 : int  2 NA 2 NA 1 1 NA NA NA 1 ...
+##  $ Otro lugar entrev. -- 494               : chr  &quot;&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ Servicio entrev. -- 450                 : int  2 NA 5 NA 1 1 NA NA NA 1 ...
+##  $ Otro servicio entrev. -- 496            : chr  &quot;&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ GCS entrevista -- 440                   : int  5 NA 6 NA 6 6 NA NA NA 3 ...
+##  $ Componente M-GCS entrev. -- 46          : int  5 NA 6 NA NA NA NA NA NA 1 ...
+##  $ Sedado entrev. -- 472                   : int  1 NA 1 NA 0 0 NA NA NA 1 ...
+##  $ Reflejo corneal entrev. -- 441          : int  1 NA 1 NA 1 1 NA NA NA 99 ...
+##  $ Reflejo tusigeno entrev. -- 442         : int  1 NA 0 NA 1 1 NA NA NA 99 ...
+##  $ Pupilas entrev. -- 443                  : int  1 NA 0 NA 0 0 NA NA NA NA ...
+##  $ Inestabilidad hemodinam. entrev. -- 445 : int  1 NA 0 NA 0 0 NA NA NA 0 ...
+##  $ Alteracion funcion hepat. entrev. -- 446: int  1 NA 0 NA 0 0 NA NA NA 0 ...
+##  $ Pa/Fi02 entrev. -- 447                  : int  5 NA 6 NA NA 300 NA NA NA 50 ...
+##  $ Funcion renal entrev. -- 452            : int  5 NA 0 NA 6 0 NA NA NA 6 ...
+##  $ ETIOLOGIA -- 526                        : chr  &quot;&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ Etiologia -- 37                         : int  0 2 2 1 2 2 NA 3 3 2 ...
+##  $ TCE -- 81                               : chr  &quot;&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ TCE Lesion -- 40                        : chr  &quot;&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ TCE Tipo lesion -- 460                  : chr  &quot;&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ TCE Otra lesion -- 499                  : chr  &quot;pupa&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ TCE Lesion asociada -- 45               : chr  &quot;1, 3&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ TCE Otra lesion asociada -- 508         : chr  &quot;Kishner&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ Variables Clinicas -- 51                : chr  &quot;&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+##  $ GCS Ingreso -- 52                       : int  4 10 6 14 13 13 NA 3 3 5 ...
+##  $ Componente M-GCS Ingr. -- 53            : int  5 2 6 6 5 5 NA 1 1 3 ...
+##  $ GCS (Deterioro antes de 48h) -- 54      : int  1 1 0 1 1 1 NA 1 1 1 ...
+##  $ Saturacion 02 min -- 55                 : int  45 95 6 NA NA NA NA 96 96 NA ...
+##  $ Temperatura min -- 56                   : int  35 35 6 38 NA 36 NA 37 NA NA ...
+##  $ Temperatura max -- 509                  : int  38 37 6 NA NA NA NA NA 37 NA ...
+##  $ TAS.max -- 57                           : int  44 NA 6 190 210 142 NA 122 122 245 ...
+##  $ TAD.max -- 58                           : int  55 NA 6 76 64 62 NA 75 75 125 ...
+##  $ TAM.max -- 59                           : num  51.3 0 6 114 112.7 ...
+##  $ TAS.min -- 60                           : int  12 NA 6 NA NA NA NA NA NA NA ...
+##  $ TAD.min -- 61                           : int  34 NA 6 NA NA NA NA NA NA NA ...
+##  $ TAM.mim -- 62                           : num  26.7 0 6 0 0 ...
+##  $ Crisis comicial -- 63                   : int  1 0 0 0 0 0 NA 0 0 0 ...
+##  $ Pupilas -- 64                           : int  1 0 0 0 0 0 NA 1 1 1 ...
+##   [list output truncated]</code></pre>
+<pre class="r"><code># Convert back the object to a data.frame
+#my.df.c &lt;- data.frame(my.df.c, stringsAsFactors = FALSE) #
+#str(my.df.c)
+
+# Search for data for fieldId 549 in the my.df (Dataframe with data)
+#my.df[,grep(&quot;549&quot;, colnames(my.df.c))]
+#colnames(my.df)[grep(&quot;549&quot;, colnames(my.df.c))]</code></pre>
 </div>
 <div id="fetch-mysql-db-table-for-tracker-fields" class="section level1">
 <h1>Fetch Mysql DB Table for Tracker fields</h1>
@@ -302,18 +520,32 @@ summary(con)</code></pre>
 ## [1] &quot;Localhost via UNIX socket&quot;
 ## 
 ## $serverVersion
-## [1] &quot;5.5.46-0ubuntu0.14.04.2&quot;
+## [1] &quot;5.5.47-0ubuntu0.14.04.1&quot;
 ## 
 ## $protocolVersion
 ## [1] 10
 ## 
 ## $threadId
-## [1] 2845
+## [1] 2903
 ## 
 ## $rsId
 ## list()</code></pre>
 <pre class="r"><code>dbListResults(con)</code></pre>
 <pre><code>## list()</code></pre>
+<pre class="r"><code>dbGetQuery(con, &quot;SET NAMES utf8&quot;)</code></pre>
+<pre><code>## NULL</code></pre>
+<pre class="r"><code>dbGetQuery(con, 'set character set utf8')</code></pre>
+<pre><code>## NULL</code></pre>
+<pre class="r"><code>dbGetQuery(con, &quot;SHOW VARIABLES LIKE 'character_set_%'&quot;)</code></pre>
+<pre><code>##              Variable_name                      Value
+## 1     character_set_client                       utf8
+## 2 character_set_connection                       utf8
+## 3   character_set_database                       utf8
+## 4 character_set_filesystem                     binary
+## 5    character_set_results                       utf8
+## 6     character_set_server                     latin1
+## 7     character_set_system                       utf8
+## 8       character_sets_dir /usr/share/mysql/charsets/</code></pre>
 <pre class="r"><code>db.tables &lt;- dbListTables(con)
 head(db.tables)</code></pre>
 <pre><code>## [1] &quot;index_56a2d79a957ff&quot; &quot;index_pref_en&quot;       &quot;index_pref_es&quot;      
@@ -358,8 +590,24 @@ head(my.t, 4)</code></pre>
 <pre class="r"><code># [1] 274  23
 
 my.tfd &lt;- base::subset(my.t, trackerId == myTrackerId) # My Tracker Fields Definition
+
+# Save dataset to disk as csv
+my.tfd.file.dirty &lt;- file.path(getwd(), dataRelDir, paste0(my.base.filename, &quot;_my.tfd.dirty.csv&quot;))
+write_csv(my.tfd, my.tfd.file.dirty)
+
+# Clean accents out of the Tracker Definition table data with &quot;unaccent&quot;&quot; also here, in an equivalent way to the conversion done for the my.df dataset.
+# unaccent UTF-8 &lt; file &gt; file.unaccented
+my.tfd.file.clean &lt;- file.path(getwd(), dataRelDir, paste0(my.base.filename, &quot;_my.tfd.clean.csv&quot;))
+system(paste0(&quot;unaccent UTF-8 &lt; &quot;, my.tfd.file.dirty, &quot; &gt; &quot;, my.tfd.file.clean))
+
+# Read the csv file
+#my.df &lt;- fread(file.path(getwd(), dataRelDir, my.tracker.file), stringsAsFactors=FALSE, data.table=F)
+# Replace data.table::fread efficient function with readr::read_csv, which self recognizes data types, while standard read.csv or fread does not. 
+#my.tfd &lt;- readr::read_csv(my.tfd.file.clean)
+#my.tfd &lt;- as.data.frame(my.tfd)
 #dim(my.tfd)
 #head(my.tfd)
+#str(my.tfd)
 
 # You might want to Check that there are not duplicataed field definitions
 #my.t.fieldIds = dbGetQuery(con, paste0(&quot;SELECT DISTINCT fieldId FROM &quot;, myTikiTable))
@@ -367,80 +615,1289 @@ my.tfd &lt;- base::subset(my.t, trackerId == myTrackerId) # My Tracker Fields De
 # Disconnect from the MySQL connection
 dbDisconnect(con)</code></pre>
 <pre><code>## [1] TRUE</code></pre>
-<pre class="r"><code># Test displaying as dataframe some json-encoded data from a radio button field definition
-# For instance, field 281 (raw 1 in the my.tt df) &quot;AnoxToxMet. RNM&quot;:
-my.tfd[1,&quot;options&quot;]</code></pre>
-<pre><code>## [1] &quot;{\&quot;options\&quot;:[\&quot;0=Normal\&quot;,\&quot;1=Anormal\&quot;]}&quot;</code></pre>
-<pre class="r"><code>#[1] &quot;{\&quot;options\&quot;:[\&quot;0=Normal\&quot;,\&quot;1=Anormal\&quot;]}&quot;
-fromJSON(my.tt[1,&quot;options&quot;])</code></pre>
-<pre><code>## $options
-## [1] &quot;0=Normal&quot;  &quot;1=Anormal&quot;</code></pre>
-<pre class="r"><code>#$options
-#[1] &quot;0=Normal&quot;  &quot;1=Anormal&quot;
+</div>
+<div id="clean-the-tracker-field-definition-also-for-weirdnesses" class="section level1">
+<h1>Clean the Tracker field definition also for weirdnesses</h1>
+<pre class="r"><code># With a simple gsub over columns options
+#issue.idx &lt;- grep(&quot;\\u00&quot;, my.tfd[,&quot;options&quot;], fixed=T)
+#my.tfd[issue.idx,&quot;options&quot;]
+##grep(&quot;&lt;U+00E1&gt;&quot;, my.tfd[,&quot;name&quot;], fixed=T)
+my.tfd[,&quot;options&quot;] &lt;- gsub(&quot;S\\u00cd&quot;, &quot;Si&quot;, my.tfd[,&quot;options&quot;], fixed=T)
+my.tfd[,&quot;options&quot;] &lt;- gsub(&quot;S\\u00ed&quot;, &quot;Si&quot;, my.tfd[,&quot;options&quot;], fixed=T)
+#issue.idx &lt;- grep(&quot;Tabaco&quot;, my.tfd[,&quot;name&quot;], fixed=T)
+#my.tfd[issue.idx,]
 
-# Display with row from the my.tt df object contains the values for the definition of fieldId 9 (Sexo -- 9)
-#which(my.tfd$fieldId==9)
-# [1] 135
-#my.tfd[which(my.tfd$fieldId==9),&quot;options&quot;]
-# [1] &quot;{\&quot;options\&quot;:[\&quot;0=Mujer\&quot;,\&quot;1=Varon\&quot;,\&quot;99=ns/nc\&quot;]}&quot;
-my.options &lt;- unlist(fromJSON(my.tfd[which(my.tfd$fieldId==9),&quot;options&quot;]))
-my.op.tmp &lt;- unlist(str_split(my.options, &quot;=&quot;))
+# Pending ToDo: handle properly the Multiple option fields
+# --------
+#multopt.idx &lt;- grep(&quot;\&quot;inputtype\&quot;:\&quot;m\&quot;&quot;, my.tfd[,&quot;options&quot;], fixed=T)
+#my.tfd[multopt.idx,]
+# ---------
 
-#head(my.df[,1:10])
-#length(colnames(my.df))
-#[1] 274
-#str(my.df[,&quot;Sexo -- 9&quot;])
+my.tfd[,&quot;options&quot;] &lt;- gsub(&quot;\\u00f3&quot;, &quot;o&quot;, my.tfd[,&quot;options&quot;], fixed=T)
+my.tfd[,&quot;options&quot;] &lt;- gsub(&quot;\\u00e1&quot;, &quot;a&quot;, my.tfd[,&quot;options&quot;], fixed=T)
+my.tfd[,&quot;options&quot;] &lt;- gsub(&quot;\\u00fa&quot;, &quot;u&quot;, my.tfd[,&quot;options&quot;], fixed=T)
+my.tfd[,&quot;options&quot;] &lt;- gsub(&quot;\\u00f1&quot;, &quot;ny&quot;, my.tfd[,&quot;options&quot;], fixed=T)
+my.tfd[,&quot;options&quot;] &lt;- gsub(&quot;\\u00e9&quot;, &quot;e&quot;, my.tfd[,&quot;options&quot;], fixed=T)
+my.tfd[,&quot;options&quot;] &lt;- gsub(&quot;\\u00ed&quot;, &quot;i&quot;, my.tfd[,&quot;options&quot;], fixed=T)
 
-my.field.colname &lt;- &quot;Sexo -- 9&quot; # As a Column name of my.df
-my.field.name &lt;- unlist(str_split(my.field.colname, &quot; -- &quot;))[1]
-my.field.id &lt;- unlist(str_split(my.field.colname, &quot; -- &quot;))[2]
-my.field.data &lt;- as.numeric(my.df[,my.field.colname])
+#issue.idx &lt;- grep(&quot;\303&quot;, my.tfd[,&quot;name&quot;], fixed=T)
+#my.tfd[issue.idx,&quot;name&quot;]
+my.tfd[,&quot;name&quot;] &lt;- gsub(&quot;\303\241&quot;, &quot;a&quot;, my.tfd[,&quot;name&quot;], fixed=T) # &quot;&lt;U+00E1&gt;&quot; for &quot;a&quot; # &lt;U+00E1&gt;
+my.tfd[,&quot;name&quot;] &lt;- gsub(&quot;\303\255&quot;, &quot;i&quot;, my.tfd[,&quot;name&quot;], fixed=T) # &quot;&lt;U+00ED&gt;&quot; for &quot;i&quot; # &lt;U+00E1&gt;
+my.tfd[,&quot;name&quot;] &lt;- gsub(&quot;\303\263&quot;, &quot;o&quot;, my.tfd[,&quot;name&quot;], fixed=T) # &quot;&lt;U+00F3&gt;&quot; for &quot;o&quot; # &lt;U+00E1&gt;
+my.tfd[,&quot;name&quot;] &lt;- gsub(&quot;\303\223&quot;, &quot;O&quot;, my.tfd[,&quot;name&quot;], fixed=T) # &quot;&lt;U+00D3&gt;&quot; for &quot;O&quot; # &lt;U+00E1&gt;
+my.tfd[,&quot;name&quot;] &lt;- gsub(&quot;\303&quot;, &quot;&quot;, my.tfd[,&quot;name&quot;], fixed=T) # &quot;&quot; for &quot;&quot; # &lt;U+00E1&gt;
 
-#Recode something like 
-                  # &quot;0&quot;     &quot;Mujer&quot; &quot;1&quot;     &quot;Varon&quot; &quot;99&quot;    &quot;ns/nc&quot;
-                  # into something like:
-                  # &quot;Mujer&quot; = 0, &quot;Varon&quot; = 1, &quot;ns/nc&quot; = 99
-cc &lt;- 0 # loop counter
-my.options &lt;- NULL
-my.op.tmp.number &lt;- NULL
-my.op.tmp.label &lt;- NULL
-# We generate two clean vectors with the information of the numbers (option values in the form)
-# and the corresponding labels shown in the form, for further merging of the information 
-# in the memisc::as.item function.
-for (ii in seq(1, length(my.op.tmp), by=2)) {
-  cc &lt;- cc+1
-  my.op.tmp.number[cc] &lt;- my.op.tmp[ii] 
-  my.op.tmp.label[cc]  &lt;- my.op.tmp[ii+1]
-}
+# Same cleaning for Options
+my.tfd[,&quot;options&quot;] &lt;- gsub(&quot;\303\241&quot;, &quot;a&quot;, my.tfd[,&quot;options&quot;], fixed=T) # &quot;&lt;U+00E1&gt;&quot; for &quot;a&quot; # &lt;U+00E1&gt;
+my.tfd[,&quot;options&quot;] &lt;- gsub(&quot;\303\255&quot;, &quot;i&quot;, my.tfd[,&quot;options&quot;], fixed=T) # &quot;&lt;U+00ED&gt;&quot; for &quot;i&quot; # &lt;U+00E1&gt;
+my.tfd[,&quot;options&quot;] &lt;- gsub(&quot;\303\263&quot;, &quot;o&quot;, my.tfd[,&quot;options&quot;], fixed=T) # &quot;&lt;U+00F3&gt;&quot; for &quot;o&quot; # &lt;U+00E1&gt;
+my.tfd[,&quot;options&quot;] &lt;- gsub(&quot;\303\223&quot;, &quot;O&quot;, my.tfd[,&quot;options&quot;], fixed=T) # &quot;&lt;U+00D3&gt;&quot; for &quot;O&quot; # &lt;U+00E1&gt;
+my.tfd[,&quot;options&quot;] &lt;- gsub(&quot;\303&quot;, &quot;&quot;, my.tfd[,&quot;options&quot;], fixed=T) # &quot;&quot; for &quot;&quot; # &lt;U+00E1&gt;
 
-#my.op.tmp.number # Clea vector of numbers (options in the form)
-#my.op.tmp.label # Clean vector of labels corresponding to the previous options
+#iconv(my.tfd[,&quot;options&quot;], to='ASCII//TRANSLIT')
+#iconv(my.tfd[,&quot;name&quot;], to='ASCII//TRANSLIT')
 
-# If we were to do it by hand we would do it like this:
-#memisc::labels(my.field.data) &lt;- c(&quot;Mujer&quot; = 0,
-#                           &quot;Varon&quot; = 1,
-#                           &quot;ns/nc&quot; = 99)
-# However, with standard &quot;assign&quot; or &quot;factor&quot; or equivalent functions, it doesn't work:
-#memisc::labels(my.field.data) &lt;- c(&quot;\&quot;Mujer\&quot;&quot; = 0,  &quot;\&quot;Varon\&quot;&quot; = 1,  &quot;\&quot;ns/nc\&quot;&quot; = 99)
+#colnames(my.tfd)
+#my.tfd[grep(&quot;438&quot;, my.tfd$&quot;fieldId&quot;),]
+#my.tfd[grep(&quot;51$&quot;, my.tfd$&quot;fieldId&quot;),]
+#my.tfd[grep(&quot;\341&quot;, my.tfd$&quot;name&quot;),]
 
-# Therefore we need to use the memisc:as.item function to properly merge all the required info in place
-my.options &lt;- as.item(my.field.data, 
-                      labels=structure(my.op.tmp.number, 
-                                       names=my.op.tmp.label),
-                      missing.values=99,
-                      annotation = c(
-                        description=my.field.name
-                        )
-                      )
-memisc::labels(my.options)</code></pre>
+# &quot;Processing fieldId&quot;
+
+#my.tfd &lt;- apply(my.tfd, 2, gsub, pattern=&quot;S\\u00cd&quot;, replacement=&quot;Si&quot;, fixed=T)
+#my.tfd &lt;- apply(my.tfd, 2, gsub, pattern=&quot;S\\u00ed&quot;, replacement=&quot;Si&quot;, fixed=T)</code></pre>
+</div>
+<div id="test-the-display-for-a-radio-button-field" class="section level1">
+<h1>Test the display for a radio button field</h1>
+<pre class="r"><code>check.one.field &lt;- F # TRUE # FALSE
+if (check.one.field) {
+    # Test displaying as dataframe some json-encoded data from a radio button field definition
+    
+    # Display with row from the my.tt df object contains the values for the definition of fieldId 9 (Sexo -- 9)
+    #which(my.tfd$fieldId==9)
+    # [1] 135
+    #my.tfd[which(my.tfd$fieldId==9),&quot;options&quot;]
+    # [1] &quot;{\&quot;options\&quot;:[\&quot;0=Mujer\&quot;,\&quot;1=Varon\&quot;,\&quot;99=ns/nc\&quot;]}&quot;
+    #table(as.numeric(my.tfd$fieldId)==9)
+    #class(my.tfd$fieldId)
+    
+    #which(my.tfd$fieldId==432)
+    # [1] 162
+    #my.tfd[which(my.tfd$fieldId==432),&quot;options&quot;]
+    # &quot;{\&quot;options\&quot;:[\&quot;0=No\&quot;,\&quot;1=Si\&quot;,\&quot;99=ns\\/nc\&quot;]}&quot;
+    #table(as.numeric(my.tfd$fieldId)==432)
+    #class(my.tfd$fieldId)
+
+  # Test for the error in names issue &quot;Tabaco -- 19&quot;, for instance
+    #which(my.tfd$fieldId==19)
+    # [1] 83
+    #my.tfd[which(my.tfd$fieldId==19),&quot;options&quot;]
+    # [1] &quot;{\&quot;options\&quot;:[\&quot;0=No\&quot;,\&quot;1=S\303\255\&quot;,\&quot;99=ns/nc\&quot;]}&quot;
+    #table(as.numeric(my.tfd$fieldId)==19)
+    #class(my.tfd$fieldId)
+    my.options.test &lt;- unlist(fromJSON(as.character(my.tfd[which(as.numeric(my.tfd$fieldId)==432),&quot;options&quot;])))
+    my.op.tmp.test &lt;- unlist(str_split(my.options.test, &quot;=&quot;))
+    
+    #head(my.df[,1:10])
+    #length(colnames(my.df))
+    #[1] 274
+    # my.tfd[162,]
+    #str(my.df[,&quot;Sexo -- 9&quot;])
+    
+    #my.field.colname &lt;- &quot;Sexo -- 9&quot; # As a Column name of my.df
+    #my.field.colname &lt;- &quot;Tabaco -- 19&quot; # As a Column name of my.df
+    my.field.colname.test &lt;- &quot;Reflejo corneal detec. -- 432&quot; # As a Column name of my.df
+    my.field.name.test &lt;- unlist(str_split(my.field.colname.test, &quot; -- &quot;))[1]
+    my.field.id.test &lt;- unlist(str_split(my.field.colname.test, &quot; -- &quot;))[2]
+    my.field.data.test &lt;- as.data.frame(my.df.c[,my.field.colname.test])[,1]
+    
+    #Recode something like 
+                      # &quot;0&quot;     &quot;Mujer&quot; &quot;1&quot;     &quot;Varon&quot; &quot;99&quot;    &quot;ns/nc&quot;
+                      # into something like:
+                      # &quot;Mujer&quot; = 0, &quot;Varon&quot; = 1, &quot;ns/nc&quot; = 99
+    cc &lt;- 0 # loop counter
+    my.options.test &lt;- NULL
+    my.op.tmp.number.test &lt;- NULL
+    my.op.tmp.label.test &lt;- NULL
+    # We generate two clean vectors with the information of the numbers (option values in the form)
+    # and the corresponding labels shown in the form, for further merging of the information 
+    # in the memisc::as.item function.
+    for (ii in seq(1, length(my.op.tmp.test), by=2)) {
+      cc &lt;- cc+1
+      my.op.tmp.number.test[cc] &lt;- my.op.tmp.test[ii] 
+      my.op.tmp.label.test[cc]  &lt;- my.op.tmp.test[ii+1]
+    }
+    
+    #my.op.tmp.number # Clea vector of numbers (options in the form)
+    #my.op.tmp.label # Clean vector of labels corresponding to the previous options
+    
+    # If we were to do it by hand we would do it like this:
+    #memisc::labels(my.field.data) &lt;- c(&quot;Mujer&quot; = 0,
+    #                           &quot;Varon&quot; = 1,
+    #                           &quot;ns/nc&quot; = 99)
+    # However, with standard &quot;assign&quot; or &quot;factor&quot; or equivalent functions, it doesn't work:
+    #memisc::labels(my.field.data) &lt;- c(&quot;\&quot;Mujer\&quot;&quot; = 0,  &quot;\&quot;Varon\&quot;&quot; = 1,  &quot;\&quot;ns/nc\&quot;&quot; = 99)
+    
+    # Therefore we need to use the memisc:as.item function to properly merge all the required info in place
+    my.field.labels.test &lt;- memisc::as.item(my.field.data.test, 
+                          labels=structure(my.op.tmp.number.test, 
+                                           names=my.op.tmp.label.test),
+                          missing.values=99,
+                          annotation = c(
+                            description=my.field.name.test
+                            )
+                          )
+    memisc::labels(my.field.labels.test)
+    
+    my.labels.df.test &lt;- data.frame(as.numeric(my.op.tmp.number.test),
+                               as.character(my.op.tmp.label.test), stringsAsFactors=FALSE) 
+    colnames(my.labels.df.test) &lt;- c(&quot;value&quot;, &quot;label&quot;)
+    df1.test &lt;- data.frame(my.field.data.test)
+    colnames(df1.test) &lt;-&quot;value&quot;
+    df2.test &lt;- my.labels.df.test
+     merged.df.test &lt;- left_join(df1.test, df2.test, by = &quot;value&quot;)
+
+        # SJMISC LABELS
+    # -----------------
+    # If there are more labels than levels of values, avoid the error.
+    if (length(table(my.field.labels.test)) != length(table(memisc::labels(my.field.labels.test)))) {
+        my.field.data.labels.sjmisc.test &lt;- try(set_labels(my.field.data.test,
+                                                      merged.df.test$label)    , TRUE)
+                if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc.test, fixed=T)) {
+                          my.field.data.labels.sjmisc.test &lt;- cbind(my.field.data.labels.sjmisc.test, t(df1))
+                  }
+
+    } else {
+        # Set also labels in the format expected by sjmisc with set_labels()
+        my.field.data.labels.sjmisc.test &lt;- set_labels(my.field.data.test,
+                                                  memisc::labels(my.field.labels.test),
+                                                  force.labels = F, force.values = T)
+    }
+    #view_df(as.data.frame(my.field.labels.test))
+    my.field.data2.test &lt;- set_labels(my.field.data.test, memisc::labels(my.field.labels.test))
+    get_labels(my.field.data2.test, include.values = T,  include.non.labelled = TRUE)
+    #view_df(data.frame(my.field.data2.test))
+    #my.field.data3 &lt;- set_labels(my.field.data.test, memisc::labels(my.field.labels.test), 
+    #                             force.labels = TRUE, force.values = FALSE)
+    #get_labels(my.field.data3.test, include.values = T,  include.non.labelled = TRUE)
+    #view_df(data.frame(my.field.data3.test))
+
+}</code></pre>
+</div>
+<div id="check-field-types-and-filter-out-unwanted-fields" class="section level1">
+<h1>Check field types and filter out unwanted fields</h1>
+<pre class="r"><code># Have a look at the columns and some of their values of the tracker field definitions (my.tfd)
+head(my.tfd)</code></pre>
+<pre><code>##   fieldId trackerId                            name
+## 1     281         1                 AnoxToxMet. RNM
+## 2     280         1                 AnoxToxMet. TAC
+## 3     270         1   AnoxToxMet. Anoxia Mioclonias
+## 4     507         1            Otras comorbilidades
+## 5     260         1         AVC isq. Procedimientos
+## 6     261         1 AnoxToxMet. Tiempo de PCR (min)
+##                      permName
+## 1          h1_I3_I5_AnoxiaRNM
+## 2          h1_I3_I5_AnoxiaTAC
+## 3 h1_I2_V_C5_AnoxiaMioclonias
+## 4         otrasComorbilidades
+## 5             h1_I1_L5_Anoxia
+## 6    h1_I1_L5_Anoxiatdeparada
+##                                                                                        options
+## 1                                                         {&quot;options&quot;:[&quot;0=Normal&quot;,&quot;1=Anormal&quot;]}
+## 2                                                           {&quot;options&quot;:[&quot;0=Normal&quot;,&quot;1=Edema&quot;]}
+## 3                                                     {&quot;options&quot;:[&quot;0=No&quot;,&quot;1=Si&quot;,&quot;99=ns\\/nc&quot;]}
+## 4                                                                                             
+## 5                                                                     {&quot;level&quot;:3,&quot;toggle&quot;:&quot;o&quot;}
+## 6 {&quot;samerow&quot;:1,&quot;size&quot;:5,&quot;prepend&quot;:&quot;&quot;,&quot;append&quot;:&quot;&quot;,&quot;decimals&quot;:0,&quot;dec_point&quot;:&quot;.&quot;,&quot;thousands&quot;:&quot;,&quot;}
+##   type isMain isTblVisible position isSearchable isPublic isHidden
+## 1    R      n            n     2100            y        y        n
+## 2    R      n            n     2090            y        y        n
+## 3    R      n            n     2070            y        y        n
+## 4    t      n            n      290            n        y        n
+## 5    h      n            n     1600            n        y        n
+## 6    n      n            n     1980            y        y        n
+##   isMandatory description isMultilingual itemChoices errorMsg visibleBy
+## 1           n                          n                               
+## 2           n                          n                               
+## 3           n                          n                               
+## 4           n                                                          
+## 5           n                          n                               
+## 6           n                          n                               
+##   editableBy descriptionIsParsed validation validationParam
+## 1                              n                           
+## 2                              n                           
+## 3                              n                           
+## 4                              n                           
+## 5                              n                           
+## 6                              n                           
+##   validationMessage
+## 1                  
+## 2                  
+## 3                  
+## 4                  
+## 5                  
+## 6</code></pre>
+<pre class="r"><code># &gt; table(my.tfd$type)
+# 
+#    a    C    d    D    f    h    M math    n    q    R    t    u 
+#    1    5   26    1   21   47   13    1   42    1   80   35    1
+# Tracker field Codes that contain value=label pairs
+#Sys.getlocale()
+Sys.setlocale('LC_ALL','C') # Needed to avoid this warning message: &quot;input string 90 is invalid in this locale&quot;, etc. Adn this line had this code: &quot;1=S\xed\&quot; (meaning &quot;1=S&lt;U+00ED&gt;&quot;).</code></pre>
+<pre><code>## [1] &quot;LC_CTYPE=C;LC_NUMERIC=C;LC_TIME=C;LC_COLLATE=C;LC_MONETARY=C;LC_MESSAGES=ca_ES.UTF-8;LC_PAPER=ca_ES.UTF-8;LC_NAME=C;LC_ADDRESS=C;LC_TELEPHONE=C;LC_MEASUREMENT=ca_ES.UTF-8;LC_IDENTIFICATION=C&quot;</code></pre>
+<pre class="r"><code>#my.tfd$options[90]
+table(my.tfd[grep(&quot;options&quot;, my.tfd$options, fixed=TRUE),&quot;type&quot;])</code></pre>
 <pre><code>## 
-##  Values and labels:
+##  D  M  R  d 
+##  1 13 80 26</code></pre>
+<pre class="r"><code>#  D  M  R  d 
+#  1 13 80 26 
+#
+# D: Dropdown with other
+# M: Multiselect
+# R: Radio button
+# d: dropdown
+#
+# See this page to check their correspondence
+# https://dev.tiki.org/Tracker+Field+Types
+
+# Headers will be treated aside of the rest. 
+# h: Header
+#
+# Special handling will be needed also for field type:
+# f: Date and Time</code></pre>
+<div id="cleanup-from-tracker-field-definition-my.tfd" class="section level2">
+<h2>Cleanup from TRACKER FIELD DEFINITION (my.tfd)</h2>
+<pre class="r"><code># FROM TRACKER FIELD DEFINITION (my.tfd)
+# --------------------------------------
+# We can start by removing them from the my.tfd to be displayed as results. We don't do a standard fixed grep to &quot;h&quot; since that would get also the field type &quot;math&quot;. Therefore, we grep with a regular expression for &quot;h&quot; at the beggining of the sentence/value and ending with that character also.
+fields.headers.idx &lt;- grep(&quot;^h$&quot;, my.tfd$type, fixed=FALSE)
+#length(fields.headers.idx)
+# 47
+# Get the fieldId's corresponding to Header type of Field
+fields.headers.fieldId &lt;- my.tfd[fields.headers.idx,&quot;fieldId&quot;]
+# Remove those from the Tracker definition table (my.tfd)
+my.tfd &lt;- my.tfd[-fields.headers.idx,]
+#colnames(my.tfd)
+#head(my.tfd[order(my.tfd$fieldId, decreasing=FALSE),],10)</code></pre>
+</div>
+<div id="cleanup-from-from-tracker-data-my.df.c" class="section level2">
+<h2>Cleanup from FROM TRACKER DATA (my.df.c)</h2>
+<pre class="r"><code># FROM TRACKER DATA (my.df.c)
+# ---------------------------
+# Remove those fields.headers.fieldId from the Tracker data (my.df.c)
+#fields.headers.fieldId
+#colnames(my.df.c)
+# Get the fieldId numbers from the colnames compound string (e.g. &quot;INTRODUCCION -- 525&quot;)
+my.df.c.col.fieldId &lt;- as.numeric(str_split_fixed(colnames(my.df.c), &quot; -- &quot;, n=2)[,2])
+# Get the column positions of the variables type Header
+my.df.c.col.fieldId.h &lt;- my.df.c.col.fieldId %in% fields.headers.fieldId
+# Check that the results are the expected, and save that info in a vector for further checking and debugging
+my.df.c.colnames.h.old &lt;- colnames(my.df.c)[my.df.c.col.fieldId.h]
+#length(my.df.c.colnames.h.old)
+my.df.c &lt;- my.df.c[,!my.df.c.col.fieldId.h]
+#head(my.df.c[,1:15])
+#length(colnames(my.df.c))
+# Get rid also of the self-numbered id for the tracker
+#colnames(my.df.c)[1:10]
+#colnames(my.df.c.new)[1:10]
+my.df.c &lt;- my.df.c[,-grep(&quot;#Id -- 1&quot;, colnames(my.df.c))]
+my.df.c &lt;- my.df.c[,-grep(&quot;Comentarios -- 3&quot;, colnames(my.df.c))]
+#colnames(my.df.c.new)[1:10]</code></pre>
+</div>
+<div id="get-the-list-of-fields-tracker-field-definition-my.tfd-with-options" class="section level2">
+<h2>Get the list of fields TRACKER FIELD DEFINITION (my.tfd) with Options</h2>
+<pre class="r"><code># FROM TRACKER FIELD DEFINITION (my.tfd)
+# --------------------------------------
+#colnames(my.tfd)
+#head(my.tfd[order(my.tfd$fieldId, decreasing=FALSE),],10)
+# Indexes of the data frame that correspond to fields which contain value:label pairs (as options)
+fields.with.options.idx &lt;- grep(&quot;options&quot;, my.tfd$options, fixed=TRUE)
+  #head(my.tfd[fields.with.options.idx,])
+  #head(my.tfd[fields.with.options.idx, c(&quot;type&quot;,&quot;options&quot;)])
+# FieldId's for those cases of tracker fields (fields which contain value:label pairs, as options)
+fields.with.options.fieldId &lt;- my.tfd[fields.with.options.idx,&quot;fieldId&quot;]</code></pre>
+</div>
+</div>
+<div id="loop-to-add-valuelabel-pairs-to-all-variables-where-needed" class="section level1">
+<h1>Loop to add value/label pairs to all variables where needed</h1>
+<pre class="r"><code># Get the column numbers of the variables that contain data that needs to be labelled properly
+# Identify the data columns that require value:label pair fixing
+#head(my.df.c)
+
+for (ff in 1:length(fields.with.options.fieldId)) {
+  #ff &lt;- 43 # f_id 19; ff &lt;- 61; ff &lt;- 1 # f_id 281; ff &lt;- 2 # f_id 280; ff &lt;- 3 # f_id 270...; ff &lt;- 5 # f_id 549 
+  # fields.with.options.idx[ff]
+  # Report progress
+  cat(paste0(&quot; (&quot;, ff, &quot;/&quot;, length(fields.with.options.fieldId), &quot;)&quot;, &quot; Processing fieldId: &quot;, fields.with.options.fieldId[ff], &quot;\n&quot;))
+
+  # Get the options for that field
+  my.options &lt;- unlist(fromJSON(as.character(my.tfd[which(as.numeric(my.tfd$fieldId)==as.numeric(fields.with.options.fieldId[ff])),&quot;options&quot;])))
+  # Split the options in chunks
+  my.op.tmp &lt;- unlist(str_split(my.options, &quot;=&quot;))
+  
+  # Get the field name
+  my.tfd[which(my.tfd[&quot;fieldId&quot;]==as.numeric(fields.with.options.fieldId[ff])), &quot;name&quot;]
+  #head(my.tfd)
+  #str(my.tfd)
+  my.df.c.col.idx &lt;- grep(paste0(&quot;-- &quot;, fields.with.options.fieldId[ff], &quot;$&quot;), colnames(my.df.c), fixed=FALSE)
+  
+  #my.df.c &lt;- data.frame(my.df.c)
+  #my.df.c[,my.df.c.col.idx]
+  
+  my.field.colname &lt;- colnames(my.df.c)[my.df.c.col.idx] # &quot;Sexo -- 9&quot; # As a Column name of my.df
+  my.field.name &lt;- unlist(str_split(my.field.colname, &quot; -- &quot;))[1]
+  my.field.id &lt;- unlist(str_split(my.field.colname, &quot; -- &quot;))[2]
+  my.field.data &lt;- as.integer(my.df.c[,my.field.colname])
+
+  #Recode something like 
+                    # &quot;0&quot;     &quot;Mujer&quot; &quot;1&quot;     &quot;Varon&quot; &quot;99&quot;    &quot;ns/nc&quot;
+                    # into something like:
+                    # &quot;Mujer&quot; = 0, &quot;Varon&quot; = 1, &quot;ns/nc&quot; = 99
+  cc &lt;- 0 # loop counter
+  my.options &lt;- NULL
+  my.op.tmp.number &lt;- NULL
+  my.op.tmp.label &lt;- NULL
+  # We generate two clean vectors with the information of the numbers (option values in the form)
+  # and the corresponding labels shown in the form, for further merging of the information 
+  # in the memisc::as.item function.
+  for (ii in seq(1, length(my.op.tmp), by=2)) {
+    cc &lt;- cc+1
+    my.op.tmp.number[cc] &lt;- my.op.tmp[ii] 
+    my.op.tmp.label[cc]  &lt;- my.op.tmp[ii+1]
+  }
+  
+  my.labels.df &lt;- data.frame(as.numeric(my.op.tmp.number),
+                             as.character(my.op.tmp.label), stringsAsFactors=FALSE) 
+  colnames(my.labels.df) &lt;- c(&quot;value&quot;, &quot;label&quot;)
+  
+  #In case we have some data in this variable, set the labels for memisc and for sjmisc.
+  # Keep in mind that they are set in the different way, and that's why you need to do both things, depending on the extra steps needed, so that you can just call one (memisc) or the other (sjmisc) as needed. 
+  if (sum(as.numeric(as.character(my.field.data)), na.rm=T) &gt; 0) {
+    # (1) MEMISC LABELS
+    # -----------------
+    # First, we need to use the memisc:as.item function to properly merge all the required info in place
+    my.field.data.labels.memisc &lt;- memisc::as.item(my.field.data, 
+                                        labels=structure(my.op.tmp.number, 
+                                                         names=my.op.tmp.label),
+                                        missing.values=99,
+                                        annotation = c(
+                                          description=my.field.name
+                                          )
+                                        )
+    # We do not attempt to display html with labels-values since it fails with this label format
+    ##view_df(data.frame(my.field.data.labels.memisc))
+    ##sjmisc::get_labels(my.field.data.labels.memisc, include.values = T)
+
+    # Check labels
+    #memisc::labels(my.field.data.labels.memisc)
+    
+              
+    # (2a) Get a vector of labels as long as the vector of values
+    # -----------------
+    # Get a vector of labels as long as the vector of values, adn reuse it for sjmisc::set_labels
+    df1 &lt;- data.frame(my.field.data)
+    colnames(df1) &lt;-&quot;value&quot;
+    df2 &lt;- my.labels.df
+    #class(df1)
+    #class(df2$value)
+#    merged.df &lt;- merge(df1, df2, by = intersect(names(df1), names(df2)), all.x=T)
+     merged.df &lt;- left_join(df1, df2, by = &quot;value&quot;)
+   
+    # (2b) SJMISC LABELS
+    # -----------------
+    # If there are more labels than levels of values, avoid the error.
+    if (length(table(my.field.data)) != length(table(memisc::labels(my.field.data.labels.memisc)))) {
+        my.field.data.labels.sjmisc &lt;- try(set_labels(my.field.data,
+                                                      merged.df$label)    , TRUE)
+        if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed=T)) {
+          my.field.data.labels.sjmisc &lt;- gsub(my.field.data.labels.sjmisc,
+                                              &quot;\n$&quot;, 
+                                              paste0(my.field.data.labels.sjmisc,
+                                                     &quot;\n&quot;,
+                                                     df1, 
+                                                     collapse=&quot;,&quot;)
+                                              )
+        }
+    } else {
+        # Set also labels in the format expected by sjmisc with set_labels()
+        my.field.data.labels.sjmisc &lt;- set_labels(my.field.data,
+                                                  memisc::labels(my.field.data.labels.memisc),
+                                                  force.labels = F, force.values = T)
+    }
+
+#     length(my.field.data)
+#names(my.field.data)
+#     length(labels(my.field.data))
+#     length(labels(merged.df$label))
+#     names(merged.df$label)
+#     length(memisc::labels(my.field.data.labels.memisc))
+#     class(my.field.data)
+#     class(base::labels(my.field.data.labels.memisc))
+#     class(memisc::labels(my.field.data.labels.memisc))
+#     
+    # Display html with variable and labels-values
+    #view_df(data.frame(my.field.data.labels.sjmisc))
+    # Check labels
+    #sjmisc::get_labels(my.field.data.labels.sjmisc, include.values = T, include.non.labelled = T)
+      #memisc::labels(my.field.data.labels.sjmisc)
+    
+    # (3) SET LABELS in DATA.FRAME VARIABLE
+    # -----------------
+    # Re-assign to the Dataframe with the clean data (my.df.c) that variable with the labels properly set
+    my.df.c[,my.df.c.col.idx] &lt;- my.field.data.labels.sjmisc
+
+      
+  # Record on disk an html version of this varaible with labels.
+  if (any(grepl(&quot;Error&quot;, try(view_df(as.data.frame(my.field.data.labels.sjmisc), 
+                                   file=file.path(logsRelDir, paste0(&quot;view_df_ff&quot;, ff,
+                                                  &quot;_fieldId&quot;, my.field.id,
+                                                  &quot;_col&quot;, my.df.c.col.idx,
+                                                  &quot;_&quot;, my.field.name,
+                                                  &quot;.html&quot;)) ), TRUE), ignore.case = TRUE, fixed=FALSE))) {
+    cat(paste0(&quot;Error in ff&quot;, ff, &quot;_fieldId&quot;, my.field.id, &quot;_col&quot;, my.df.c.col.idx,
+               &quot;_&quot;, my.field.name, &quot;\n&quot;))
+                                                  }
+  
+  } # Done setting labels to a variable with data to be labelled
+
+
+} # Done with this variable (ff - field with options - loop)</code></pre>
+<pre><code>##  (1/120) Processing fieldId: 281
+##  (2/120) Processing fieldId: 280</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 1 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (3/120) Processing fieldId: 270</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (4/120) Processing fieldId: 254</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (5/120) Processing fieldId: 549</code></pre>
+<pre><code>## More values in &quot;x&quot; than length of &quot;labels&quot;. Additional values were added to labels.</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## Error in ff5_fieldId549_col169_AnoxToxMet. Hidroelectro Tipo
+##  (6/120) Processing fieldId: 474</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (7/120) Processing fieldId: 475</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (8/120) Processing fieldId: 232
 ## 
-##     0 'Mujer'
-##     1 'Varon'
-##    99 'ns/nc'</code></pre>
-<pre class="r"><code>class(my.field.data)</code></pre>
-<pre><code>## [1] &quot;numeric&quot;</code></pre>
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (9/120) Processing fieldId: 231</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 1 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (10/120) Processing fieldId: 230</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 1 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (11/120) Processing fieldId: 221</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 1 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (12/120) Processing fieldId: 220</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 1 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (13/120) Processing fieldId: 193</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (14/120) Processing fieldId: 191</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 3 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (15/120) Processing fieldId: 160</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 4 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (16/120) Processing fieldId: 145</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 1 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (17/120) Processing fieldId: 142</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (18/120) Processing fieldId: 141</code></pre>
+<pre><code>## Warning: NAs introduced by coercion</code></pre>
+<pre><code>## Warning in data.frame(as.numeric(my.op.tmp.number),
+## as.character(my.op.tmp.label), : NAs introduced by coercion</code></pre>
+<pre><code>##  (19/120) Processing fieldId: 132
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (20/120) Processing fieldId: 131</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (21/120) Processing fieldId: 122</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (22/120) Processing fieldId: 117</code></pre>
+<pre><code>## Warning: NAs introduced by coercion</code></pre>
+<pre><code>## Warning in data.frame(as.numeric(my.op.tmp.number),
+## as.character(my.op.tmp.label), : NAs introduced by coercion</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (23/120) Processing fieldId: 115</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (24/120) Processing fieldId: 114
+##  (25/120) Processing fieldId: 111</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (26/120) Processing fieldId: 109</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (27/120) Processing fieldId: 107</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (28/120) Processing fieldId: 106
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (29/120) Processing fieldId: 105</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (30/120) Processing fieldId: 103</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 7 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (31/120) Processing fieldId: 102</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (32/120) Processing fieldId: 201</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (33/120) Processing fieldId: 73</code></pre>
+<pre><code>## Warning: NAs introduced by coercion</code></pre>
+<pre><code>## Warning in data.frame(as.numeric(my.op.tmp.number),
+## as.character(my.op.tmp.label), : NAs introduced by coercion</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 4 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (34/120) Processing fieldId: 72
+##  (35/120) Processing fieldId: 67</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (36/120) Processing fieldId: 66
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (37/120) Processing fieldId: 65</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (38/120) Processing fieldId: 64</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (39/120) Processing fieldId: 63</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (40/120) Processing fieldId: 16</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (41/120) Processing fieldId: 17</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 3 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (42/120) Processing fieldId: 18
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (43/120) Processing fieldId: 19
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (44/120) Processing fieldId: 20</code></pre>
+<pre><code>## Warning: NAs introduced by coercion</code></pre>
+<pre><code>## Warning in data.frame(as.numeric(my.op.tmp.number),
+## as.character(my.op.tmp.label), : NAs introduced by coercion</code></pre>
+<pre><code>##  (45/120) Processing fieldId: 21</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (46/120) Processing fieldId: 22</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (47/120) Processing fieldId: 23</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (48/120) Processing fieldId: 24</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 3 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (49/120) Processing fieldId: 25</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (50/120) Processing fieldId: 26</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 3 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (51/120) Processing fieldId: 27</code></pre>
+<pre><code>## Warning: NAs introduced by coercion</code></pre>
+<pre><code>## Warning in data.frame(as.numeric(my.op.tmp.number),
+## as.character(my.op.tmp.label), : NAs introduced by coercion</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 10 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (52/120) Processing fieldId: 196</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (53/120) Processing fieldId: 38</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (54/120) Processing fieldId: 37</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 5 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (55/120) Processing fieldId: 35</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 6 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (56/120) Processing fieldId: 34</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 3 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (57/120) Processing fieldId: 45</code></pre>
+<pre><code>## Warning: NAs introduced by coercion</code></pre>
+<pre><code>## Warning in data.frame(as.numeric(my.op.tmp.number),
+## as.character(my.op.tmp.label), : NAs introduced by coercion</code></pre>
+<pre><code>##  (58/120) Processing fieldId: 54</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (59/120) Processing fieldId: 14</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 5 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (60/120) Processing fieldId: 13</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (61/120) Processing fieldId: 9</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (62/120) Processing fieldId: 282
+##  (63/120) Processing fieldId: 300
+##  (64/120) Processing fieldId: 312
+##  (65/120) Processing fieldId: 320
+##  (66/120) Processing fieldId: 330
+##  (67/120) Processing fieldId: 331
+##  (68/120) Processing fieldId: 350
+##  (69/120) Processing fieldId: 351
+##  (70/120) Processing fieldId: 381</code></pre>
+<pre><code>## Warning in data.frame(as.numeric(my.op.tmp.number),
+## as.character(my.op.tmp.label), : NAs introduced by coercion</code></pre>
+<pre><code>##  (71/120) Processing fieldId: 402</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (72/120) Processing fieldId: 414</code></pre>
+<pre><code>## Warning in data.frame(as.numeric(my.op.tmp.number),
+## as.character(my.op.tmp.label), : NAs introduced by coercion</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 5 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (73/120) Processing fieldId: 407
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (74/120) Processing fieldId: 408
+##  (75/120) Processing fieldId: 409</code></pre>
+<pre><code>## Warning in data.frame(as.numeric(my.op.tmp.number),
+## as.character(my.op.tmp.label), : NAs introduced by coercion</code></pre>
+<pre><code>##  (76/120) Processing fieldId: 410</code></pre>
+<pre><code>## Warning in data.frame(as.numeric(my.op.tmp.number),
+## as.character(my.op.tmp.label), : NAs introduced by coercion</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 1 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (77/120) Processing fieldId: 412
+##  (78/120) Processing fieldId: 413</code></pre>
+<pre><code>## Warning in data.frame(as.numeric(my.op.tmp.number),
+## as.character(my.op.tmp.label), : NAs introduced by coercion</code></pre>
+<pre><code>##  (79/120) Processing fieldId: 380
+##  (80/120) Processing fieldId: 262</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 1 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (81/120) Processing fieldId: 283
+##  (82/120) Processing fieldId: 382</code></pre>
+<pre><code>## Warning in data.frame(as.numeric(my.op.tmp.number),
+## as.character(my.op.tmp.label), : NAs introduced by coercion</code></pre>
+<pre><code>##  (83/120) Processing fieldId: 390
+##  (84/120) Processing fieldId: 74
+##  (85/120) Processing fieldId: 68
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (86/120) Processing fieldId: 420</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 1 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (87/120) Processing fieldId: 432
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (88/120) Processing fieldId: 433
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (89/120) Processing fieldId: 434</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (90/120) Processing fieldId: 435</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (91/120) Processing fieldId: 448</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 6 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (92/120) Processing fieldId: 449</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 3 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (93/120) Processing fieldId: 438</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (94/120) Processing fieldId: 441
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (95/120) Processing fieldId: 442
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (96/120) Processing fieldId: 443</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (97/120) Processing fieldId: 445</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (98/120) Processing fieldId: 446</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (99/120) Processing fieldId: 450</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 6 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (100/120) Processing fieldId: 451</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (101/120) Processing fieldId: 452</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 7 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (102/120) Processing fieldId: 453</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 1 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (103/120) Processing fieldId: 454</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 1 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (104/120) Processing fieldId: 460
+##  (105/120) Processing fieldId: 473</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 5 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (106/120) Processing fieldId: 465</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (107/120) Processing fieldId: 466</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 1 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (108/120) Processing fieldId: 467</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 1 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (109/120) Processing fieldId: 468
+##  (110/120) Processing fieldId: 470
+##  (111/120) Processing fieldId: 471
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (112/120) Processing fieldId: 472</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (113/120) Processing fieldId: 192</code></pre>
+<pre><code>## Warning: NAs introduced by coercion</code></pre>
+<pre><code>## Warning in data.frame(as.numeric(my.op.tmp.number),
+## as.character(my.op.tmp.label), : NAs introduced by coercion</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (114/120) Processing fieldId: 487</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (115/120) Processing fieldId: 497</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 5 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (116/120) Processing fieldId: 516
+##  (117/120) Processing fieldId: 519</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (118/120) Processing fieldId: 521</code></pre>
+<pre><code>## More labels than values of &quot;x&quot;. Using first 2 labels.</code></pre>
+<pre><code>## Warning in if (grepl(&quot;rror&quot;, my.field.data.labels.sjmisc, fixed = T)) {:
+## the condition has length &gt; 1 and only the first element will be used</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+##  (119/120) Processing fieldId: 550
+##  (120/120) Processing fieldId: 552</code></pre>
+<pre class="r"><code> #str(my.df.c)</code></pre>
 </div>
 <div id="convert-the-tracker-data-to-data.set-for-package-memisc" class="section level1">
 <h1>Convert the tracker data to data.set for package memisc</h1>
@@ -448,11 +1905,644 @@ memisc::labels(my.options)</code></pre>
 #class(my.df.c)
 
 # Therefore we need to convert the clean matrix of data, into a data.frame, and convert it to class data.set from package memisc
-my.ds &lt;- as.data.set(data.frame(my.df.c)) 
-class(my.ds)</code></pre>
-<pre><code>## [1] &quot;data.set&quot;
-## attr(,&quot;package&quot;)
-## [1] &quot;memisc&quot;</code></pre>
+#my.ds &lt;- as.data.set(data.frame(my.df.c)) 
+# Fails with: 
+#Error in (function (classes, fdef, mtable)  : 
+#  unable to find an inherited method for function 'as.item' for signature '&quot;Date&quot;'
+#class(my.ds)</code></pre>
+</div>
+<div id="produce-some-description-out-of-the-data" class="section level1">
+<h1>Produce some description out of the data</h1>
+<pre class="r"><code>require(sjmisc)
+require(sjPlot)
+view_df(data.frame(my.df.c), 
+        file=file.path(resultsRelDir, paste0(my.base.filename,&quot;_view_df.html&quot;)),
+        showFreq = TRUE, showPerc = TRUE, encoding = &quot;UTF-8&quot;, showType=TRUE)</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L,
+## NA), .Label = c(&quot;admin&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L,
+## NA), .Label = c(&quot;admin&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=                                                                |   1%
+  |                                                                       
+  |=                                                                |   2%
+  |                                                                       
+  |==                                                               |   3%
+  |                                                                       
+  |==                                                               |   4%
+  |                                                                       
+  |===                                                              |   4%
+  |                                                                       
+  |===                                                              |   5%
+  |                                                                       
+  |====                                                             |   6%
+  |                                                                       
+  |====                                                             |   7%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=====                                                            |   7%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=====                                                            |   8%
+  |                                                                       
+  |======                                                           |   9%
+  |                                                                       
+  |======                                                           |  10%
+  |                                                                       
+  |=======                                                          |  10%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=======                                                          |  11%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |========                                                         |  12%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |========                                                         |  13%
+  |                                                                       
+  |=========                                                        |  13%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=========                                                        |  14%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |==========                                                       |  15%
+  |                                                                       
+  |==========                                                       |  16%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |===========                                                      |  16%
+  |                                                                       
+  |===========                                                      |  17%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |============                                                     |  18%
+  |                                                                       
+  |============                                                     |  19%
+  |                                                                       
+  |=============                                                    |  20%
+  |                                                                       
+  |==============                                                   |  21%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |==============                                                   |  22%
+  |                                                                       
+  |===============                                                  |  23%
+  |                                                                       
+  |===============                                                  |  24%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |================                                                 |  24%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |================                                                 |  25%
+  |                                                                       
+  |=================                                                |  26%
+  |                                                                       
+  |=================                                                |  27%
+  |                                                                       
+  |==================                                               |  27%
+  |                                                                       
+  |==================                                               |  28%
+  |                                                                       
+  |===================                                              |  29%
+  |                                                                       
+  |===================                                              |  30%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |====================                                             |  30%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |====================                                             |  31%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=====================                                            |  32%
+  |                                                                       
+  |=====================                                            |  33%
+  |                                                                       
+  |======================                                           |  33%
+  |                                                                       
+  |======================                                           |  34%
+  |                                                                       
+  |=======================                                          |  35%
+  |                                                                       
+  |=======================                                          |  36%
+  |                                                                       
+  |========================                                         |  36%
+  |                                                                       
+  |========================                                         |  37%
+  |                                                                       
+  |=========================                                        |  38%
+  |                                                                       
+  |=========================                                        |  39%
+  |                                                                       
+  |==========================                                       |  40%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |===========================                                      |  41%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |===========================                                      |  42%
+  |                                                                       
+  |============================                                     |  43%
+  |                                                                       
+  |============================                                     |  44%
+  |                                                                       
+  |=============================                                    |  44%
+  |                                                                       
+  |=============================                                    |  45%
+  |                                                                       
+  |==============================                                   |  46%
+  |                                                                       
+  |==============================                                   |  47%
+  |                                                                       
+  |===============================                                  |  47%
+  |                                                                       
+  |===============================                                  |  48%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |================================                                 |  49%
+  |                                                                       
+  |================================                                 |  50%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================                                |  50%
+  |                                                                       
+  |=================================                                |  51%
+  |                                                                       
+  |==================================                               |  52%
+  |                                                                       
+  |==================================                               |  53%
+  |                                                                       
+  |===================================                              |  53%
+  |                                                                       
+  |===================================                              |  54%
+  |                                                                       
+  |====================================                             |  55%
+  |                                                                       
+  |====================================                             |  56%
+  |                                                                       
+  |=====================================                            |  56%
+  |                                                                       
+  |=====================================                            |  57%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |======================================                           |  58%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |======================================                           |  59%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=======================================                          |  60%
+  |                                                                       
+  |========================================                         |  61%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |========================================                         |  62%
+  |                                                                       
+  |=========================================                        |  63%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=========================================                        |  64%
+  |                                                                       
+  |==========================================                       |  64%
+  |                                                                       
+  |==========================================                       |  65%
+  |                                                                       
+  |===========================================                      |  66%
+  |                                                                       
+  |===========================================                      |  67%
+  |                                                                       
+  |============================================                     |  67%
+  |                                                                       
+  |============================================                     |  68%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=============================================                    |  69%
+  |                                                                       
+  |=============================================                    |  70%
+  |                                                                       
+  |==============================================                   |  70%
+  |                                                                       
+  |==============================================                   |  71%
+  |                                                                       
+  |===============================================                  |  72%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |===============================================                  |  73%
+  |                                                                       
+  |================================================                 |  73%
+  |                                                                       
+  |================================================                 |  74%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================                |  75%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label
+## = &quot;Error in names(attr(x, attr.string)) &lt;- labels : \n 'names' attribute
+## [17] must be the same length as the vector [2]\n\nc(0, NA, NA, NA, NA, NA,
+## NA, NA, NA, NA, NA, NA, 99, NA, 0, NA)&quot;, class = &quot;factor&quot;)): invalid factor
+## level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label
+## = &quot;Error in names(attr(x, attr.string)) &lt;- labels : \n 'names' attribute
+## [17] must be the same length as the vector [2]\n\nc(0, NA, NA, NA, NA, NA,
+## NA, NA, NA, NA, NA, NA, 99, NA, 0, NA)&quot;, class = &quot;factor&quot;)): invalid factor
+## level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================                |  76%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |==================================================               |  76%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |==================================================               |  77%
+  |                                                                       
+  |===================================================              |  78%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |===================================================              |  79%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |====================================================             |  80%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=====================================================            |  81%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=====================================================            |  82%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |======================================================           |  83%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |======================================================           |  84%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=======================================================          |  84%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=======================================================          |  85%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |========================================================         |  86%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |========================================================         |  87%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=========================================================        |  87%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=========================================================        |  88%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |==========================================================       |  89%
+  |                                                                       
+  |==========================================================       |  90%
+  |                                                                       
+  |===========================================================      |  90%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |===========================================================      |  91%
+  |                                                                       
+  |============================================================     |  92%
+  |                                                                       
+  |============================================================     |  93%
+  |                                                                       
+  |=============================================================    |  93%
+  |                                                                       
+  |=============================================================    |  94%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |==============================================================   |  95%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |==============================================================   |  96%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |===============================================================  |  96%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |===============================================================  |  97%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |================================================================ |  98%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |================================================================ |  99%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%</code></pre>
+<pre class="r"><code>#view_df(data.frame(my.df.c), showFreq = TRUE, showPerc = TRUE) #  # As before, but with frequencies and percentages (as a &quot;codebook&quot;)
+
+#view_df(data.frame(my.ds), file=paste0(&quot;view_df_my.ds&quot;, &quot;.html&quot;))
+#view_df(data.frame(my.ds), showFreq = TRUE, showPerc = TRUE) #  # As before, but with frequencies and percentages (as a &quot;codebook&quot;)
+
+#sjt.frq (data.frame(my.df.c)[,10]) # For one variable, such as &quot;Sexo -- 9&quot;, which is #10 here.</code></pre>
+</div>
+<div id="tweak-data-and-labels-through-gui-optional" class="section level1">
+<h1>Tweak data and labels through GUI (Optional)</h1>
+<pre class="r"><code>require(Rz)</code></pre>
+<pre><code>## Loading required package: Rz
+## Loading required package: grid
+## Loading required package: foreign
+## Loading required package: psych
+## 
+## Attaching package: 'psych'
+## 
+## The following objects are masked from 'package:ggplot2':
+## 
+##     %+%, alpha
+## 
+## The following object is masked from 'package:sjmisc':
+## 
+##     phi
+## 
+## The following objects are masked from 'package:scales':
+## 
+##     alpha, rescale
+## 
+## ################################ Rz ################################
+##                        Excute Rz() to start,                        
+##       or you can start from menu bar if you use R on Windows.       
+## ####################################################################</code></pre>
+<pre class="r"><code>Rz()</code></pre>
 </div>
 <div id="create-codebook-optional" class="section level1">
 <h1>Create Codebook (optional)</h1>
@@ -463,9 +2553,9 @@ class(my.ds)</code></pre>
 <div id="some-ways-to-make-descriptive-statistics" class="section level1">
 <h1>Some ways to make descriptive statistics</h1>
 <pre class="r"><code># See http://r-es.org/7jornadasR/ponencias/jose_ignacio_casas.pdf (Slide 21 onwards)
-dim(my.t.fieldIds)</code></pre>
-<pre><code>## [1] 274   1</code></pre>
-<pre class="r"><code>#description(my.df[,1:10])
+#dim(my.t.fieldIds)
+
+#description(my.df[,1:10])
 # Try some packaages for a basic descriptive statistics out of some data set
 #
 # compareGroups: 
@@ -496,29 +2586,25 @@ dim(my.t.fieldIds)</code></pre>
 #library(qdap)
 
 ### EXAMPLE with pre-set data frame by hand
-marca&lt;-c(&quot;opel&quot;,&quot;renault&quot;,&quot;renault&quot;)
-model&lt;-c(&quot;corsa&quot;,&quot;laguna&quot;,&quot;modus&quot;)
-cilindrada&lt;-c(1.2,1.9,1.5)
-color&lt;-c(&quot;blanc&quot;,&quot;vermell&quot;,&quot;violeta&quot;)
-cotxes&lt;-data.frame(marca,model,cilindrada,color)
-cotxes</code></pre>
-<pre><code>##     marca  model cilindrada   color
-## 1    opel  corsa        1.2   blanc
-## 2 renault laguna        1.9 vermell
-## 3 renault  modus        1.5 violeta</code></pre>
-<pre class="r"><code># init default theme for plots
+# marca&lt;-c(&quot;opel&quot;,&quot;renault&quot;,&quot;renault&quot;)
+# model&lt;-c(&quot;corsa&quot;,&quot;laguna&quot;,&quot;modus&quot;)
+# cilindrada&lt;-c(1.2,1.9,1.5)
+# color&lt;-c(&quot;blanc&quot;,&quot;vermell&quot;,&quot;violeta&quot;)
+# cotxes&lt;-data.frame(marca,model,cilindrada,color)
+# cotxes
+# init default theme for plots
 #sjp.setTheme(geom.label.size = 2.5, axis.title.size = .9, axis.textsize = .9)
 #sjp.frq(cotxes$marca)
 #str(my.df)
 #sjp.frq(my.df[,1]) # this fails for unknown reason
-#my.df &lt;- set_val_labels(my.df, c(str_split(colnames(my.df), &quot;\\.&quot;)[[1]][1],
+#my.df &lt;- set_labels(my.df, c(str_split(colnames(my.df), &quot;\\.&quot;)[[1]][1],
 #                                 str_split(colnames(my.df), &quot;\\.&quot;)[[2]][1],
 #                                 str_split(colnames(my.df), &quot;\\.&quot;)[[3]][1]))</code></pre>
 <p>Note that the <code>echo = FALSE</code> parameter was added to the code chunk to prevent printing of the R code that generated the plot.</p>
 <pre class="r"><code>###################################################
 # Store session info (package versions, etc) in the logs folder
 ###################################################
-sink(file.path(paste0(&quot;log_&quot;, format(Sys.Date(), format=&quot;%y%m%d&quot;), &quot;_&quot;, aID, &quot;.txt&quot;)))
+sink(file.path(logsRelDir, paste0(&quot;log_&quot;, format(Sys.Date(), format=&quot;%y%m%d&quot;), &quot;_&quot;, aID, &quot;.txt&quot;)))
 cat(&quot;Sys.info() : \n&quot;)</code></pre>
 <pre><code>## Sys.info() :</code></pre>
 <pre class="r"><code>cat(&quot;--------------------\n&quot;)</code></pre>
@@ -526,8 +2612,8 @@ cat(&quot;Sys.info() : \n&quot;)</code></pre>
 <pre class="r"><code>data.frame(Sys.info())</code></pre>
 <pre><code>##                                                         Sys.info..
 ## sysname                                                      Linux
-## release                                          3.16.0-57-generic
-## version        #77~14.04.1-Ubuntu SMP Thu Dec 17 23:20:00 UTC 2015
+## release                                          3.16.0-60-generic
+## version        #80~14.04.1-Ubuntu SMP Wed Jan 20 13:37:48 UTC 2016
 ## nodename                                                pentinella
 ## machine                                                     x86_64
 ## login                                                      unknown
@@ -551,37 +2637,39 @@ cat(&quot;Sys.info() : \n&quot;)</code></pre>
 ## Running under: Ubuntu 14.04.3 LTS
 ## 
 ## locale:
-##  [1] LC_CTYPE=ca_ES.UTF-8       LC_NUMERIC=C              
-##  [3] LC_TIME=ca_ES.UTF-8        LC_COLLATE=ca_ES.UTF-8    
-##  [5] LC_MONETARY=ca_ES.UTF-8    LC_MESSAGES=ca_ES.UTF-8   
+##  [1] LC_CTYPE=C                 LC_NUMERIC=C              
+##  [3] LC_TIME=C                  LC_COLLATE=C              
+##  [5] LC_MONETARY=C              LC_MESSAGES=ca_ES.UTF-8   
 ##  [7] LC_PAPER=ca_ES.UTF-8       LC_NAME=C                 
 ##  [9] LC_ADDRESS=C               LC_TELEPHONE=C            
 ## [11] LC_MEASUREMENT=ca_ES.UTF-8 LC_IDENTIFICATION=C       
 ## 
 ## attached base packages:
-## [1] stats     graphics  grDevices utils     datasets  methods   base     
+## [1] grid      stats     graphics  grDevices utils     datasets  methods  
+## [8] base     
 ## 
 ## other attached packages:
-##  [1] memisc_0.99.3.3  MASS_7.3-45      lattice_0.20-33  jsonlite_0.9.19 
-##  [5] RMySQL_0.10.7    DBI_0.3.1        data.table_1.9.6 stringr_1.0.0   
-##  [9] stringi_1.0-1    httr_1.0.0       ggplot2_2.0.0    sjmisc_1.4      
-## [13] sjPlot_1.8.4     devtools_1.9.1   rCharts_0.4.5   
+##  [1] Rz_0.9-1         psych_1.5.8      foreign_0.8-66   memisc_0.99.3.3 
+##  [5] MASS_7.3-45      lattice_0.20-33  dplyr_0.4.3      readr_0.2.2     
+##  [9] jsonlite_0.9.19  RMySQL_0.10.7    DBI_0.3.1        data.table_1.9.6
+## [13] stringr_1.0.0    stringi_1.0-1    httr_1.0.0       ggplot2_2.0.0   
+## [17] sjmisc_1.4       sjPlot_1.8.4     scales_0.3.0     devtools_1.9.1  
+## [21] rCharts_0.4.5   
 ## 
 ## loaded via a namespace (and not attached):
-##  [1] Rcpp_0.12.2        formatR_1.2.1      nloptr_1.0.4      
-##  [4] plyr_1.8.3         tools_3.2.3        digest_0.6.8      
-##  [7] lme4_1.1-10        evaluate_0.8       memoise_0.2.1     
-## [10] gtable_0.1.2       nlme_3.1-122       mgcv_1.8-10       
-## [13] psych_1.5.8        Matrix_1.2-3       curl_0.9.4        
-## [16] yaml_2.1.13        parallel_3.2.3     SparseM_1.7       
-## [19] dplyr_0.4.3        knitr_1.11         MatrixModels_0.4-1
-## [22] grid_3.2.3         nnet_7.3-11        R6_2.1.1          
-## [25] rmarkdown_0.9      RJSONIO_1.3-0      minqa_1.2.4       
-## [28] tidyr_0.4.0        car_2.1-1          magrittr_1.5      
-## [31] whisker_0.3-2      scales_0.3.0       htmltools_0.3     
-## [34] splines_3.2.3      mnormt_1.5-3       assertthat_0.1    
-## [37] pbkrtest_0.4-5     colorspace_1.2-6   quantreg_5.19     
-## [40] munsell_0.4.2      chron_2.3-47</code></pre>
+##  [1] splines_3.2.3      colorspace_1.2-6   htmltools_0.3     
+##  [4] yaml_2.1.13        mgcv_1.8-11        chron_2.3-47      
+##  [7] nloptr_1.0.4       RColorBrewer_1.1-2 plyr_1.8.3        
+## [10] MatrixModels_0.4-1 munsell_0.4.2      gtable_0.1.2      
+## [13] memoise_0.2.1      evaluate_0.8       knitr_1.11        
+## [16] SparseM_1.7        quantreg_5.19      pbkrtest_0.4-5    
+## [19] parallel_3.2.3     curl_0.9.4         Rcpp_0.12.2       
+## [22] formatR_1.2.1      lme4_1.1-10        mnormt_1.5-3      
+## [25] digest_0.6.8       RJSONIO_1.3-0      RGtk2_2.20.31     
+## [28] tools_3.2.3        magrittr_1.5       whisker_0.3-2     
+## [31] car_2.1-1          tidyr_0.4.0        Matrix_1.2-3      
+## [34] assertthat_0.1     minqa_1.2.4        rmarkdown_0.9     
+## [37] R6_2.1.1           nnet_7.3-12        nlme_3.1-123</code></pre>
 <pre class="r"><code>sink()</code></pre>
 </div>
 
