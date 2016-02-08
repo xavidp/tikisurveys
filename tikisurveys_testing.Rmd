@@ -81,6 +81,7 @@ pCRAN <- c("devtools",
            "jsonlite",
            "readr",
            "dplyr",
+           "versions",
            "memisc")
 
 if( any(!pCRAN %in% rownames(installed.packages())) ){
@@ -97,6 +98,13 @@ for (ii in 1:length(packages)) {
 
 # if memisc fails for some reason on CRAN, like the package is just updated online but CRAN still points to the old package which is not available anymore, then you can install through github:
 #devtools::install_github("melff/memisc",subdir="pkg")
+
+if (installed.versions("sjPlot") != "1.8.4") {
+  # Install a secific version of some package, like sjPlot 0.8.4
+  packageurl <- "https://cran.r-project.org/src/contrib/Archive/sjPlot/sjPlot_1.8.4.tar.gz"
+  install.packages(packageurl, repos=NULL, type="source")  
+}
+
 ```
 
 ## Load data from Rda (if available)
@@ -314,7 +322,7 @@ my.tfd[,"options"] <- gsub("\303", "", my.tfd[,"options"], fixed=T) # "" for "" 
 # Test the display of a radio button field
 
 ```{r Test the display of a radio button field}
-check.one.rb.field <- F # TRUE # FALSE
+check.one.rb.field <- F # TRUE # FALSE
 if (check.one.rb.field) {
     # Test displaying as dataframe some json-encoded data from a radio button field definition
     
@@ -980,6 +988,15 @@ for (ff in 1:length(fields.with.options.fieldId)) {
 ```{r Produce some description out of the data}
 require(sjmisc)
 require(sjPlot)
+
+# Test col by col to see where the problem is
+for (cc in 1:length(colnames(my.df.c))) {
+    view_df(data.frame(my.df.c[,colnames(my.df.c)[cc]]), 
+            file=file.path(logsRelDir, paste0(my.base.filename,"_view_df_col", 
+                                                 cc,".html")),
+            showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE)
+}
+ 
 view_df(data.frame(my.df.c), 
         file=file.path(resultsRelDir, paste0(my.base.filename,"_view_df.html")),
         showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE)
