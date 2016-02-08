@@ -311,11 +311,11 @@ my.tfd[,"options"] <- gsub("\303", "", my.tfd[,"options"], fixed=T) # "" for "" 
 #my.tfd <- apply(my.tfd, 2, gsub, pattern="S\\u00ed", replacement="Si", fixed=T)
 ```
 
-# Test the display for a radio button field
+# Test the display of a radio button field
 
-```{r Test the display for a radio button field}
-check.one.field <- F # TRUE # FALSE
-if (check.one.field) {
+```{r Test the display of a radio button field}
+check.one.rb.field <- F # TRUE # FALSE
+if (check.one.rb.field) {
     # Test displaying as dataframe some json-encoded data from a radio button field definition
     
     # Display with row from the my.tt df object contains the values for the definition of fieldId 9 (Sexo -- 9)
@@ -333,14 +333,14 @@ if (check.one.field) {
     #table(as.numeric(my.tfd$fieldId)==549)
     #class(my.tfd$fieldId)
 
-  # Test for the error in names issue "Tabaco -- 19", for instance
-    #which(my.tfd$fieldId==19)
-    # [1] 83
-    #my.tfd[which(my.tfd$fieldId==19),"options"]
-    # [1] "{\"options\":[\"0=No\",\"1=S\303\255\",\"99=ns/nc\"]}"
-    #table(as.numeric(my.tfd$fieldId)==19)
+  # Test for the missing info in Dates
+    #which(my.tfd$fieldId==8)
+    # [1] 118
+    #my.tfd[which(my.tfd$fieldId==8),"options"]
+    # [1] "{\"datetime\":\"d\",\"startyear\":\"1900\",\"endyear\":\"2016\",\"blankdate\":\"blank\"}"
+    #table(as.numeric(my.tfd$fieldId)==118)
     #class(my.tfd$fieldId)
-    my.options.test <- unlist(fromJSON(as.character(my.tfd[which(as.numeric(my.tfd$fieldId)==549),"options"])))
+    my.options.test <- unlist(fromJSON(as.character(my.tfd[which(as.numeric(my.tfd$fieldId)==8),"options"])))
     my.op.tmp.test <- unlist(str_split(my.options.test, "="))
     
     #head(my.df[,1:10])
@@ -421,6 +421,52 @@ if (check.one.field) {
     #view_df(as.data.frame(my.field.labels.test))
     my.field.data2.test <- set_labels(my.field.data.test, memisc::labels(my.field.labels.test))
     get_labels(my.field.data2.test, include.values = T,  include.non.labelled = TRUE)
+    #view_df(data.frame(my.field.data2.test))
+    #my.field.data3 <- set_labels(my.field.data.test, memisc::labels(my.field.labels.test), 
+    #                             force.labels = TRUE, force.values = FALSE)
+    #get_labels(my.field.data3.test, include.values = T,  include.non.labelled = TRUE)
+    #view_df(data.frame(my.field.data3.test))
+
+}
+
+```
+
+# Test the display of date fields
+
+```{r Test the display of date fields}
+check.one.date.field <- F # TRUE # FALSE
+if (check.one.date.field) {
+    # Test displaying as dataframe some json-encoded data from a date button field definition
+    
+    # Test for the missing info in Dates
+    my.date.test.field <- 8
+    my.date.test.field.row <- which(my.tfd$fieldId==my.date.test.field)
+    # [1] 118
+    my.tfd[which(my.tfd$fieldId==my.date.test.field),"options"]
+    #[1] "{\"datetime\":\"d\",\"startyear\":\"1900\",\"endyear\":\"2016\",\"blankdate\":\"blank\"}"
+    #table(as.numeric(my.tfd$fieldId)==my.date.test.field)
+    #class(my.tfd$fieldId)
+    my.options.test <- unlist(fromJSON(as.character(my.tfd[which(as.numeric(my.tfd$fieldId) ==
+                                                                   my.date.test.field),"options"])))
+    my.op.tmp.test <- unlist(str_split(my.options.test, "="))
+    
+    #head(my.df[,1:10])
+    #length(colnames(my.df))
+    #[1] 274
+    my.tfd[my.date.test.field.row,]
+    #str(my.df[,"Sexo -- 9"])
+    
+    #my.field.colname <- "Sexo -- 9" # As a Column name of my.df
+    #my.field.colname <- "Tabaco -- 19" # As a Column name of my.df
+    my.field.name.test <- my.tfd[which(my.tfd$fieldId==my.date.test.field),"name"]
+    my.field.id.test <- my.date.test.field
+    my.field.colname.test <- paste0(my.field.name.test , " -- ", my.field.id.test) # As a Column name of my.df
+    my.field.data.test <- as.data.frame(my.df.c[,my.field.colname.test])[,1]
+    
+
+    view_df(as.data.frame(as.character(my.field.data.test)), showType=TRUE)
+    view_df(as.data.frame(my.field.data.test), showType=TRUE)
+    sjt.df(as.data.frame(as.character(my.field.data.test)), showType=TRUE)
     #view_df(data.frame(my.field.data2.test))
     #my.field.data3 <- set_labels(my.field.data.test, memisc::labels(my.field.labels.test), 
     #                             force.labels = TRUE, force.values = FALSE)
@@ -614,6 +660,7 @@ for (ff in 1:length(fields.with.options.fieldId)) {
     # -----------------
     # If there are more labels than levels of values, avoid the error.
     if (length(table(my.field.data)) != length(table(memisc::labels(my.field.data.labels.memisc)))) {
+        cat("\n*** Case (2bA) SJMISC LABELS: A - set_labels(my.field.data, merged.df$label)***\n")
         my.field.data.labels.sjmisc <- try(set_labels(my.field.data,
                                                       merged.df$label)    , TRUE)
         if (grepl("rror", my.field.data.labels.sjmisc, fixed=T)) {
@@ -621,11 +668,13 @@ for (ff in 1:length(fields.with.options.fieldId)) {
                                               "\n$", 
                                               paste0(my.field.data.labels.sjmisc,
                                                      "\n",
+                                                     "*** caseA ***\n",
                                                      df1, 
                                                      collapse=",")
                                               )
         }
     } else {
+        cat("\n*** Case (2bB) SJMISC LABELS: B - set_labels(my.field.data, memisc::labels(my.field.data.labels.memisc) ***\n")
         # Set also labels in the format expected by sjmisc with set_labels()
         my.field.data.labels.sjmisc <- set_labels(my.field.data,
                                                   memisc::labels(my.field.data.labels.memisc),
@@ -697,6 +746,9 @@ view_df(data.frame(my.df.c),
         file=file.path(resultsRelDir, paste0(my.base.filename,"_view_df.html")),
         showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE)
 #view_df(data.frame(my.df.c), showFreq = TRUE, showPerc = TRUE) #  # As before, but with frequencies and percentages (as a "codebook")
+sjt.df(as.data.frame(my.df.c),
+       file=file.path(resultsRelDir, paste0(my.base.filename,"_sjt.df.html")),
+       showType=TRUE)
 
 #view_df(data.frame(my.ds), file=paste0("view_df_my.ds", ".html"))
 #view_df(data.frame(my.ds), showFreq = TRUE, showPerc = TRUE) #  # As before, but with frequencies and percentages (as a "codebook")
@@ -710,7 +762,7 @@ view_df(data.frame(my.df.c),
 
 ```{r Tweak data and labels through GUI (Optional)}
 require(Rz)
-Rz()
+#Rz()
 
 ```
 
