@@ -780,9 +780,13 @@ my.df.c <- my.df.c[,-grep("#Id -- 1", colnames(my.df.c))]
 my.df.c <- my.df.c[,-grep("Comentarios -- 3", colnames(my.df.c))]
 #colnames(my.df.c.new)[1:10]
 
+# Clone my.df.c into equivalent df, one for transforming values to strings, and the other keep numeric values as numbers.
+my.df.c.strings <- my.df.c
+my.df.c.numbers <- my.df.c
+
 # Convert to factor all columns the carry dates
 my.df.c.date.fname <- grep("Fecha", colnames(my.df.c), fixed=F, ignore.case = T, value=T)
-my.df.c[,my.df.c.date.fname] <- lapply(my.df.c[,my.df.c.date.fname] , factor)
+my.df.c.strings[,my.df.c.date.fname] <- lapply(my.df.c[,my.df.c.date.fname] , factor)
 
 ```
 
@@ -832,7 +836,7 @@ if (play.with.numbers) {
 }
 
 # Change class from numeric to character so that numbers are also shown in the view_df html produced
-my.df.c[,fields.numbers.fname.full] <- lapply(my.df.c[,fields.numbers.fname.full] , as.character)
+my.df.c.strings[,fields.numbers.fname.full] <- lapply(my.df.c[,fields.numbers.fname.full] , as.character)
 
 ```
 
@@ -1020,7 +1024,7 @@ for (ff in 1:length(fields.with.options.fieldId)) {
     # (3) SET LABELS in DATA.FRAME VARIABLE
     # -----------------
     # Re-assign to the Dataframe with the clean data (my.df.c) that variable with the labels properly set
-    my.df.c[,my.df.c.col.idx] <- my.field.data.labels.sjmisc
+    my.df.c.strings[,my.df.c.col.idx] <- my.field.data.labels.sjmisc
 
       
   # Record on disk an html version of this varaible with labels.
@@ -1065,17 +1069,17 @@ require(sjPlot)
 
 # Test col by col to see where the problem is
 for (cc in 1:length(colnames(my.df.c))) {
-    view_df(data.frame(my.df.c[,colnames(my.df.c)[cc]]), 
+    view_df(data.frame(my.df.c.strings[,colnames(my.df.c)[cc]]), 
             file=file.path(logsRelDir, paste0(my.base.filename,"_view_df_col", 
                                                  sprintf("%03d", cc),".html")),
             showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE)
 }
  
-view_df(data.frame(my.df.c), 
+view_df(data.frame(my.df.c.strings), 
         file=file.path(resultsRelDir, paste0(my.base.filename,"_view_df.html")),
         showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE)
 #view_df(data.frame(my.df.c), showFreq = TRUE, showPerc = TRUE) #  # As before, but with frequencies and percentages (as a "codebook")
-sjt.df(as.data.frame(my.df.c),
+sjt.df(as.data.frame(my.df.c.numbers),
        file=file.path(resultsRelDir, paste0(my.base.filename,"_sjt.df.html")),
        showType=TRUE)
 
