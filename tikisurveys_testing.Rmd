@@ -313,11 +313,13 @@ my.tfd[,"options"] <- gsub("\\u00e9", "e", my.tfd[,"options"], fixed=T)
 my.tfd[,"options"] <- gsub("\\u00ed", "i", my.tfd[,"options"], fixed=T)
 
 #issue.idx <- grep("\303", my.tfd[,"name"], fixed=T)
+#issue.idx <- grep("\302", my.tfd[,"name"], fixed=T)
 #my.tfd[issue.idx,"name"]
 my.tfd[,"name"] <- gsub("\303\241", "a", my.tfd[,"name"], fixed=T) # "á" for "a" # <U+00E1>
 my.tfd[,"name"] <- gsub("\303\255", "i", my.tfd[,"name"], fixed=T) # "í" for "i" # <U+00E1>
 my.tfd[,"name"] <- gsub("\303\263", "o", my.tfd[,"name"], fixed=T) # "ó" for "o" # <U+00E1>
 my.tfd[,"name"] <- gsub("\303\223", "O", my.tfd[,"name"], fixed=T) # "Ó" for "O" # <U+00E1>
+my.tfd[,"name"] <- gsub("\302\262", "2", my.tfd[,"name"], fixed=T) # "^2" for "2" # \302\262
 my.tfd[,"name"] <- gsub("\303", "", my.tfd[,"name"], fixed=T) # "" for "" # <U+00E1>
 
 # Same cleaning for Options
@@ -790,23 +792,29 @@ my.df.c.strings[,my.df.c.date.fname] <- lapply(my.df.c[,my.df.c.date.fname] , fa
 
 ```
 
-## Tweak numeric variables (convert to character)
+## Tweak numeric, computed and math variables (convert to character)
 
-```{r Tweak numeric variables  (convert to character)}
+```{r Tweak numeric, computed and math variables  (convert to character)}
   # Convert to factor also the numeric values
 fields.numbers.idx <- grep("^n$", my.tfd$type, fixed=FALSE)
 length(fields.numbers.idx)
 # 42
+fields.math.idx <- grep("^math$|^C$", my.tfd$type, fixed=FALSE)
+length(fields.math.idx)
+my.tfd[fields.math.idx,]
 
 # Get the fieldId's corresponding to number type of Field
 fields.numbers.fieldId <- my.tfd[fields.numbers.idx,"fieldId"]
 fields.numbers.fname <- my.tfd[fields.numbers.idx,"name"]
 fields.numbers.fname.full <- paste0(fields.numbers.fname , " -- ", fields.numbers.fieldId) # As a Column name of my.df
+fields.math.fieldId <- my.tfd[fields.math.idx,"fieldId"]
+fields.math.fname <- my.tfd[fields.math.idx,"name"]
+fields.math.fname.full <- paste0(fields.math.fname , " -- ", fields.math.fieldId) # As a Column name of my.df
 
 play.with.numbers <- F # F # T
 if (play.with.numbers) {
     # Test for the missing info in Dates
-    my.num.test.field <- 10
+    my.num.test.field <- 12
     my.num.test.field.row <- which(my.tfd$fieldId==my.num.test.field)
     # [1] 118
     my.tfd[which(my.tfd$fieldId==my.num.test.field),"options"]
@@ -837,6 +845,7 @@ if (play.with.numbers) {
 
 # Change class from numeric to character so that numbers are also shown in the view_df html produced
 my.df.c.strings[,fields.numbers.fname.full] <- lapply(my.df.c[,fields.numbers.fname.full] , as.character)
+my.df.c.strings[,fields.math.fname.full] <- lapply(my.df.c[,fields.math.fname.full] , as.character)
 
 ```
 
