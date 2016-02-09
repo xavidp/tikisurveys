@@ -98,13 +98,32 @@ for (ii in 1:length(packages)) {
 
 # if memisc fails for some reason on CRAN, like the package is just updated online but CRAN still points to the old package which is not available anymore, then you can install through github:
 #devtools::install_github("melff/memisc",subdir="pkg")
-
-if (installed.versions("sjPlot") != "1.8.4") {
-  # Install a secific version of some package, like sjPlot 0.8.4
-  packageurl <- "https://cran.r-project.org/src/contrib/Archive/sjPlot/sjPlot_1.8.4.tar.gz"
-  install.packages(packageurl, repos=NULL, type="source")  
+my.paths.all <- .libPaths()
+my.paths.clean <- NULL
+for (mm in 1:length(my.paths.all)) {
+  cat(paste0(mm,"/", length(my.paths.all), ": Checking in ", my.paths.all[mm], "\n"))
+  if (any(grepl("sjPlot", installed.packages(lib=my.paths.all[mm])[,1]))) {
+#    cat(paste0("       *** sjPlot found in ", my.paths.all[mm], " ***\n"))
+    cat(paste0("       *** sjPlot found, v ", 
+               installed.versions("sjPlot", lib=my.paths.all[mm]),
+               " ***\n"))
+    my.paths.clean <- c(my.paths.clean, my.paths.all[mm])
+  } else {
+    cat(paste0("       (none found)\n"))
+  }
 }
-
+for (my.path in my.paths.clean) {
+  cat(paste0("Checking in ", my.path, "\n"))
+   if (installed.versions("sjPlot", lib=my.path) != "1.8.4") {
+    cat(paste0("       Different sjPlot version than 1.8.4: ",
+               installed.versions("sjPlot", lib=my.path), " \n"))
+   # Install a secific version of some package, like sjPlot 0.8.4
+   packageurl <- "https://cran.r-project.org/src/contrib/Archive/sjPlot/sjPlot_1.8.4.tar.gz"
+   install.packages(packageurl, repos=NULL, type="source")  
+   } else {
+    cat(paste0("       sjPlot v: ", installed.versions("sjPlot", lib=my.path), " \n"))
+   }
+}
 ```
 
 ## Load data from Rda (if available)
