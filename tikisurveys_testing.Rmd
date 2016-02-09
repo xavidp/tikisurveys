@@ -2,7 +2,10 @@
 title: "Tiki surveys Testing"
 author: "Xavier de Pedro Puente"
 date: "25/01/2016"
-output: html_document
+output: 
+  html_document:
+    toc: true
+    number_sections: true
 ---
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
@@ -13,7 +16,7 @@ Interesting Slides from a presentation in VII Jornades de Usuarios de R (R-es)
 See Presentation from:
 http://files.meetup.com/1781511/useR%20Vignette%20-%20Accessing%20Databases%20from%20R%20-%2020110504.pdf
 
-## Basic params
+# Basic params
 
 ```{r Basic params, echo=FALSE}
 
@@ -33,9 +36,9 @@ for (folder in folders2create) {
   }
 ```
 
-## Install packages
+# Install packages
 
-### System packages
+## System packages
 You will need unaccent (which reuses iconv system command in the backend) to replace accented characters with their non-accented counterparts. The function iconv from the R package works well with data inside a data.frame, but it seems to produce NA when the string to make the replacement in, is the column name of the dataframe. Therefore, since we need to do this replacement for the data in the csv coming from the tracker, we will do so with a system command to that csv file before reading it into a data.frame in R.
 
 We will also replace some strings there with system program "sed" . See:
@@ -46,7 +49,7 @@ You can install them in Debian based machines with:
 
 > sudo apt-get install unaccent sed
 
-### R packages (from CRAN and eventually from Bioconductor)
+## R packages (from CRAN and eventually from Bioconductor)
 ```{r Install packages, echo=FALSE}
 Sys.setenv(GIT_ASKPASS=Sys.getenv("SSH_ASKPASS"))
 #############################
@@ -126,7 +129,7 @@ for (my.path in my.paths.clean) {
 }
 ```
 
-## Load data from Rda (if available)
+# Load data from Rda (if available)
 
 ```{r Load data from Rda (if available), echo=TRUE}
 my.rda <- "mySession.Rda"
@@ -138,7 +141,7 @@ if (file.exists(file.path(getwd(), my.rda))) {
 }
 ```
 
-## Fetch data from the trasplantaments db into a .csv file on disk
+# Fetch data from the trasplantaments db into a .csv file on disk
 
 ```{r Fetch data from the trasplantaments db into a .csv file on disk, echo=T}
 aID <- "TikiTrackerDB" # Analysis ID
@@ -283,7 +286,7 @@ system(paste0("unaccent UTF-8 < ", my.tfd.file.dirty, " > ", my.tfd.file.clean))
 dbDisconnect(con)
 ```
 
-# Clean the Tracker field definition also for weirdnesses
+## Clean the Tracker field definition also for weirdnesses
 
 ```{r Clean the Tracker field definition also for weirdnesses}
 
@@ -338,7 +341,9 @@ my.tfd[,"options"] <- gsub("\303", "", my.tfd[,"options"], fixed=T) # "" for "" 
 #my.tfd <- apply(my.tfd, 2, gsub, pattern="S\\u00ed", replacement="Si", fixed=T)
 ```
 
-# Test the display of a radio button field
+# Some tests (before we go for real)
+
+## Test the display of a radio button field
 
 ```{r Test the display of a radio button field}
 check.one.rb.field <- F # TRUE # FALSE
@@ -459,7 +464,7 @@ if (check.one.rb.field) {
 ```
 
 
-# Test function view_df to attempt to tweak it for date fields
+## Test function view_df to attempt to tweak it for date fields
 
 ```{r Test function view_df to attempt to tweak it for date fields}
 
@@ -651,7 +656,7 @@ view_df2 <- function (x, weightBy = NULL, file = NULL, alternateRowColors = TRUE
 }
 ```
 
-# Test the display of date fields
+## Test the display of date fields
 
 ```{r Test the display of date fields}
 check.one.date.field <- F # TRUE # FALSE
@@ -733,7 +738,7 @@ table(my.tfd[grep("options", my.tfd$options, fixed=TRUE),"type"])
 
 ```
 
-## Cleanup from TRACKER FIELD DEFINITION (my.tfd)
+# Cleanup from TRACKER FIELD DEFINITION (my.tfd)
 
 ```{r Cleanup from TRACKER FIELD DEFINITION (my.tfd)}
 # FROM TRACKER FIELD DEFINITION (my.tfd)
@@ -781,7 +786,7 @@ my.df.c[,my.df.c.date.fname] <- lapply(my.df.c[,my.df.c.date.fname] , factor)
 
 ```
 
-# Play with dates
+## Play with dates (optional)
 
 ```{r Play with dates}
 play.with.dates <- F # F # T
@@ -820,7 +825,7 @@ if (play.with.dates) {
 
 ```
 
-## Get the list of fields TRACKER FIELD DEFINITION (my.tfd) with Options
+# Get the list of fields TRACKER FIELD DEFINITION (my.tfd) with Options
 
 ```{r Get the list of fields TRACKER FIELD DEFINITION (my.tfd) with Options}
 # FROM TRACKER FIELD DEFINITION (my.tfd)
@@ -988,7 +993,7 @@ for (ff in 1:length(fields.with.options.fieldId)) {
 
 ```
 
-# Convert the tracker data to data.set for package memisc
+# Convert the tracker data to data.set for package memisc (Optional)
 
 ```{r Convert the tracker data to data.set for package memisc}
 # Our data is still stored as a matrix.
@@ -1040,7 +1045,7 @@ sjt.df(as.data.frame(my.df.c),
 
 ```
 
-# Create Codebook (optional)
+# Create Codebook (Optional)
 
 ```{r Create Codebook (optional)}
 # CodeBooks
@@ -1050,7 +1055,7 @@ sjt.df(as.data.frame(my.df.c),
 
 ```
 
-# Some ways to make descriptive statistics
+# Some ways to make descriptive statistics (Optional)
 
 ```{r Some ways to make descriptive statistics}
 # See http://r-es.org/7jornadasR/ponencias/jose_ignacio_casas.pdf (Slide 21 onwards)
@@ -1103,6 +1108,7 @@ sjt.df(as.data.frame(my.df.c),
 #                                 str_split(colnames(my.df), "\\.")[[3]][1]))
 ```
 
+# Store objects into an Rda
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
 ```{r Store objects into an Rda, echo=FALSE}
@@ -1114,6 +1120,8 @@ save(my.c,
      my.ds,
      file=my.rda)
 ```
+
+# Stored session info
 
 ```{r Stored session info, echo=TRUE}
 ###################################################

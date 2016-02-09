@@ -67,17 +67,52 @@ img {
 <h4 class="date"><em>25/01/2016</em></h4>
 </div>
 
+<div id="TOC">
+<ul>
+<li><a href="#basic-params"><span class="toc-section-number">1</span> Basic params</a></li>
+<li><a href="#install-packages"><span class="toc-section-number">2</span> Install packages</a><ul>
+<li><a href="#system-packages"><span class="toc-section-number">2.1</span> System packages</a></li>
+<li><a href="#r-packages-from-cran-and-eventually-from-bioconductor"><span class="toc-section-number">2.2</span> R packages (from CRAN and eventually from Bioconductor)</a></li>
+</ul></li>
+<li><a href="#load-data-from-rda-if-available"><span class="toc-section-number">3</span> Load data from Rda (if available)</a></li>
+<li><a href="#fetch-data-from-the-trasplantaments-db-into-a-.csv-file-on-disk"><span class="toc-section-number">4</span> Fetch data from the trasplantaments db into a .csv file on disk</a><ul>
+<li><a href="#massage-and-cleanup-the-dataset"><span class="toc-section-number">4.1</span> massage and cleanup the dataset</a></li>
+</ul></li>
+<li><a href="#fetch-mysql-db-table-for-tracker-fields"><span class="toc-section-number">5</span> Fetch Mysql DB Table for Tracker fields</a><ul>
+<li><a href="#clean-the-tracker-field-definition-also-for-weirdnesses"><span class="toc-section-number">5.1</span> Clean the Tracker field definition also for weirdnesses</a></li>
+</ul></li>
+<li><a href="#some-tests-before-we-go-for-real"><span class="toc-section-number">6</span> Some tests (before we go for real)</a><ul>
+<li><a href="#test-the-display-of-a-radio-button-field"><span class="toc-section-number">6.1</span> Test the display of a radio button field</a></li>
+<li><a href="#test-function-view_df-to-attempt-to-tweak-it-for-date-fields"><span class="toc-section-number">6.2</span> Test function view_df to attempt to tweak it for date fields</a></li>
+<li><a href="#test-the-display-of-date-fields"><span class="toc-section-number">6.3</span> Test the display of date fields</a></li>
+</ul></li>
+<li><a href="#check-field-types-and-filter-out-unwanted-fields"><span class="toc-section-number">7</span> Check field types and filter out unwanted fields</a></li>
+<li><a href="#cleanup-from-tracker-field-definition-my.tfd"><span class="toc-section-number">8</span> Cleanup from TRACKER FIELD DEFINITION (my.tfd)</a><ul>
+<li><a href="#cleanup-from-from-tracker-data-my.df.c"><span class="toc-section-number">8.1</span> Cleanup from FROM TRACKER DATA (my.df.c)</a></li>
+<li><a href="#play-with-dates-optional"><span class="toc-section-number">8.2</span> Play with dates (optional)</a></li>
+</ul></li>
+<li><a href="#get-the-list-of-fields-tracker-field-definition-my.tfd-with-options"><span class="toc-section-number">9</span> Get the list of fields TRACKER FIELD DEFINITION (my.tfd) with Options</a></li>
+<li><a href="#loop-to-add-valuelabel-pairs-to-all-variables-where-needed"><span class="toc-section-number">10</span> Loop to add value/label pairs to all variables where needed</a></li>
+<li><a href="#convert-the-tracker-data-to-data.set-for-package-memisc-optional"><span class="toc-section-number">11</span> Convert the tracker data to data.set for package memisc (Optional)</a></li>
+<li><a href="#produce-some-description-out-of-the-data"><span class="toc-section-number">12</span> Produce some description out of the data</a></li>
+<li><a href="#tweak-data-and-labels-through-gui-optional"><span class="toc-section-number">13</span> Tweak data and labels through GUI (Optional)</a></li>
+<li><a href="#create-codebook-optional"><span class="toc-section-number">14</span> Create Codebook (Optional)</a></li>
+<li><a href="#some-ways-to-make-descriptive-statistics-optional"><span class="toc-section-number">15</span> Some ways to make descriptive statistics (Optional)</a></li>
+<li><a href="#store-objects-into-an-rda"><span class="toc-section-number">16</span> Store objects into an Rda</a></li>
+<li><a href="#stored-session-info"><span class="toc-section-number">17</span> Stored session info</a></li>
+</ul>
+</div>
 
 <p>This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <a href="http://rmarkdown.rstudio.com" class="uri">http://rmarkdown.rstudio.com</a>.</p>
 <p>When you click the <strong>Knit</strong> button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:</p>
 <p>Interesting Slides from a presentation in VII Jornades de Usuarios de R (R-es) See Presentation from: <a href="http://files.meetup.com/1781511/useR%20Vignette%20-%20Accessing%20Databases%20from%20R%20-%2020110504.pdf">http://files.meetup.com/1781511/useR%20Vignette%20-%20Accessing%20Databases%20from%20R%20-%2020110504.pdf</a></p>
-<div id="basic-params" class="section level2">
-<h2>Basic params</h2>
+<div id="basic-params" class="section level1">
+<h1><span class="header-section-number">1</span> Basic params</h1>
 </div>
-<div id="install-packages" class="section level2">
-<h2>Install packages</h2>
-<div id="system-packages" class="section level3">
-<h3>System packages</h3>
+<div id="install-packages" class="section level1">
+<h1><span class="header-section-number">2</span> Install packages</h1>
+<div id="system-packages" class="section level2">
+<h2><span class="header-section-number">2.1</span> System packages</h2>
 <p>You will need unaccent (which reuses iconv system command in the backend) to replace accented characters with their non-accented counterparts. The function iconv from the R package works well with data inside a data.frame, but it seems to produce NA when the string to make the replacement in, is the column name of the dataframe. Therefore, since we need to do this replacement for the data in the csv coming from the tracker, we will do so with a system command to that csv file before reading it into a data.frame in R.</p>
 <p>We will also replace some strings there with system program “sed” . See: * <a href="http://www.grymoire.com/Unix/Sed.html" class="uri">http://www.grymoire.com/Unix/Sed.html</a> * <a href="http://www.brunolinux.com/02-The_Terminal/Find_and%20Replace_with_Sed.html">http://www.brunolinux.com/02-The_Terminal/Find_and%20Replace_with_Sed.html</a></p>
 <p>You can install them in Debian based machines with:</p>
@@ -85,8 +120,8 @@ img {
 <p>sudo apt-get install unaccent sed</p>
 </blockquote>
 </div>
-<div id="r-packages-from-cran-and-eventually-from-bioconductor" class="section level3">
-<h3>R packages (from CRAN and eventually from Bioconductor)</h3>
+<div id="r-packages-from-cran-and-eventually-from-bioconductor" class="section level2">
+<h2><span class="header-section-number">2.2</span> R packages (from CRAN and eventually from Bioconductor)</h2>
 <pre><code>## Loading required package: rCharts
 ## Loading required package: devtools
 ## Loading required package: scales
@@ -129,6 +164,7 @@ img {
 ## 
 ##     intersect, setdiff, setequal, union
 ## 
+## Loading required package: versions
 ## Loading required package: memisc
 ## Loading required package: lattice
 ## Loading required package: MASS
@@ -161,10 +197,20 @@ img {
 ## The following object is masked from 'package:base':
 ## 
 ##     as.array</code></pre>
+<pre><code>## 1/4: Checking in /home/xavi/R/x86_64-pc-linux-gnu-library/3.2
+##        *** sjPlot found, v 1.8.4 ***
+## 2/4: Checking in /usr/local/lib/R/site-library
+##        (none found)
+## 3/4: Checking in /usr/lib/R/site-library
+##        (none found)
+## 4/4: Checking in /usr/lib/R/library
+##        (none found)</code></pre>
+<pre><code>## Checking in /home/xavi/R/x86_64-pc-linux-gnu-library/3.2
+##        sjPlot v: 1.8.4</code></pre>
 </div>
 </div>
-<div id="load-data-from-rda-if-available" class="section level2">
-<h2>Load data from Rda (if available)</h2>
+<div id="load-data-from-rda-if-available" class="section level1">
+<h1><span class="header-section-number">3</span> Load data from Rda (if available)</h1>
 <pre class="r"><code>my.rda &lt;- &quot;mySession.Rda&quot;
 
 # load it from disk (if present on disk)
@@ -173,8 +219,8 @@ if (file.exists(file.path(getwd(), my.rda))) {
   load(file=file.path(getwd(), my.rda))
 }</code></pre>
 </div>
-<div id="fetch-data-from-the-trasplantaments-db-into-a-.csv-file-on-disk" class="section level2">
-<h2>Fetch data from the trasplantaments db into a .csv file on disk</h2>
+<div id="fetch-data-from-the-trasplantaments-db-into-a-.csv-file-on-disk" class="section level1">
+<h1><span class="header-section-number">4</span> Fetch data from the trasplantaments db into a .csv file on disk</h1>
 <pre class="r"><code>aID &lt;- &quot;TikiTrackerDB&quot; # Analysis ID
 
 # If your tiki is not under localhost, adapt the path below for my.file
@@ -219,9 +265,8 @@ my.c.encoding</code></pre>
 bin &lt;- httr::content(my.c, &quot;raw&quot;, encoding=&quot;UTF-8&quot;)
 my.base.filename &lt;- paste0(&quot;trk&quot;, my.trackerId,&quot;_&quot;, format(Sys.Date(), &quot;%y%m%d&quot;))
 writeBin(bin, file.path(getwd(), dataRelDir, paste0(my.base.filename, &quot;_my.df.dirty.csv&quot;)))</code></pre>
-</div>
 <div id="massage-and-cleanup-the-dataset" class="section level2">
-<h2>massage and cleanup the dataset</h2>
+<h2><span class="header-section-number">4.1</span> massage and cleanup the dataset</h2>
 <p>We tried applying an “apply” function to the whole data frame just for the sake of practising with the apply function itself, since the gsub would do it on the 2nd column, which is the only one selfnumbered which carries this html markup to show the “#” sign in front of it, as defined in the Tracker Field definition. However, since the apply converts the dataframe into a matrix, and classes of the data.frme variables get lost, we avoid it, and we use a for loop and replace on site</p>
 <pre class="r"><code>Sys.setlocale('LC_ALL','C') # Needed to avoid this warning message: &quot;input string 90 is invalid in this locale&quot;, etc. Adn this line had this code: &quot;1=S\xed\&quot; (meaning &quot;1=S&lt;U+00ED&gt;&quot;).</code></pre>
 <pre><code>## [1] &quot;LC_CTYPE=C;LC_NUMERIC=C;LC_TIME=C;LC_COLLATE=C;LC_MONETARY=C;LC_MESSAGES=ca_ES.UTF-8;LC_PAPER=ca_ES.UTF-8;LC_NAME=C;LC_ADDRESS=C;LC_TELEPHONE=C;LC_MEASUREMENT=ca_ES.UTF-8;LC_IDENTIFICATION=C&quot;</code></pre>
@@ -489,8 +534,9 @@ my.df.c[,1:10]</code></pre>
 #my.df[,grep(&quot;549&quot;, colnames(my.df.c))]
 #colnames(my.df)[grep(&quot;549&quot;, colnames(my.df.c))]</code></pre>
 </div>
+</div>
 <div id="fetch-mysql-db-table-for-tracker-fields" class="section level1">
-<h1>Fetch Mysql DB Table for Tracker fields</h1>
+<h1><span class="header-section-number">5</span> Fetch Mysql DB Table for Tracker fields</h1>
 <pre class="r"><code>myTrackerId &lt;- 1
 myMySQLUser &lt;- &quot;exporter&quot;
 myMySQLPw   &lt;- &quot;12345&quot;
@@ -526,7 +572,7 @@ summary(con)</code></pre>
 ## [1] 10
 ## 
 ## $threadId
-## [1] 2930
+## [1] 2848
 ## 
 ## $rsId
 ## list()</code></pre>
@@ -615,9 +661,8 @@ system(paste0(&quot;unaccent UTF-8 &lt; &quot;, my.tfd.file.dirty, &quot; &gt; &
 # Disconnect from the MySQL connection
 dbDisconnect(con)</code></pre>
 <pre><code>## [1] TRUE</code></pre>
-</div>
-<div id="clean-the-tracker-field-definition-also-for-weirdnesses" class="section level1">
-<h1>Clean the Tracker field definition also for weirdnesses</h1>
+<div id="clean-the-tracker-field-definition-also-for-weirdnesses" class="section level2">
+<h2><span class="header-section-number">5.1</span> Clean the Tracker field definition also for weirdnesses</h2>
 <pre class="r"><code># With a simple gsub over columns options
 #issue.idx &lt;- grep(&quot;\\u00&quot;, my.tfd[,&quot;options&quot;], fixed=T)
 #my.tfd[issue.idx,&quot;options&quot;]
@@ -668,8 +713,11 @@ my.tfd[,&quot;options&quot;] &lt;- gsub(&quot;\303&quot;, &quot;&quot;, my.tfd[,
 #my.tfd &lt;- apply(my.tfd, 2, gsub, pattern=&quot;S\\u00cd&quot;, replacement=&quot;Si&quot;, fixed=T)
 #my.tfd &lt;- apply(my.tfd, 2, gsub, pattern=&quot;S\\u00ed&quot;, replacement=&quot;Si&quot;, fixed=T)</code></pre>
 </div>
-<div id="test-the-display-of-a-radio-button-field" class="section level1">
-<h1>Test the display of a radio button field</h1>
+</div>
+<div id="some-tests-before-we-go-for-real" class="section level1">
+<h1><span class="header-section-number">6</span> Some tests (before we go for real)</h1>
+<div id="test-the-display-of-a-radio-button-field" class="section level2">
+<h2><span class="header-section-number">6.1</span> Test the display of a radio button field</h2>
 <pre class="r"><code>check.one.rb.field &lt;- F # TRUE # FALSE
 if (check.one.rb.field) {
     # Test displaying as dataframe some json-encoded data from a radio button field definition
@@ -785,8 +833,197 @@ if (check.one.rb.field) {
 
 }</code></pre>
 </div>
-<div id="test-the-display-of-date-fields" class="section level1">
-<h1>Test the display of date fields</h1>
+<div id="test-function-view_df-to-attempt-to-tweak-it-for-date-fields" class="section level2">
+<h2><span class="header-section-number">6.2</span> Test function view_df to attempt to tweak it for date fields</h2>
+<pre class="r"><code>view_df2 &lt;- function (x, weightBy = NULL, file = NULL, alternateRowColors = TRUE, 
+    showID = TRUE, showType = FALSE, showValues = TRUE, showValueLabels = TRUE, 
+    showFreq = FALSE, showPerc = FALSE, showWtdFreq = FALSE, 
+    showWtdPerc = FALSE, showNA = FALSE, sortByName = FALSE, 
+    breakVariableNamesAt = 50, encoding = NULL, hideProgressBar = FALSE, 
+    CSS = NULL, useViewer = TRUE, no.output = FALSE, remove.spaces = TRUE) 
+{
+    encoding &lt;- get.encoding(encoding, x)
+    if (!is.data.frame(x)) 
+        stop(&quot;Parameter needs to be a data frame!&quot;, call. = FALSE)
+    df.var &lt;- sjmisc::get_label(x)
+    df.val &lt;- sjmisc::get_labels(x)
+    colcnt &lt;- ncol(x)
+    id &lt;- 1:colcnt
+    if (sortByName) 
+        id &lt;- id[order(colnames(x))]
+    tag.table &lt;- &quot;table&quot;
+    tag.thead &lt;- &quot;thead&quot;
+    tag.tdata &lt;- &quot;tdata&quot;
+    tag.arc &lt;- &quot;arc&quot;
+    css.table &lt;- &quot;border-collapse:collapse; border:none;&quot;
+    css.thead &lt;- &quot;border-bottom:double; font-style:italic; font-weight:normal; padding:0.2cm; text-align:left; vertical-align:top;&quot;
+    css.tdata &lt;- &quot;padding:0.2cm; text-align:left; vertical-align:top;&quot;
+    css.arc &lt;- &quot;background-color:#eaeaea&quot;
+    if (!is.null(CSS)) {
+        if (!is.null(CSS[[&quot;css.table&quot;]])) 
+            css.table &lt;- ifelse(substring(CSS[[&quot;css.table&quot;]], 
+                1, 1) == &quot;+&quot;, paste0(css.table, substring(CSS[[&quot;css.table&quot;]], 
+                2)), CSS[[&quot;css.table&quot;]])
+        if (!is.null(CSS[[&quot;css.thead&quot;]])) 
+            css.thead &lt;- ifelse(substring(CSS[[&quot;css.thead&quot;]], 
+                1, 1) == &quot;+&quot;, paste0(css.thead, substring(CSS[[&quot;css.thead&quot;]], 
+                2)), CSS[[&quot;css.thead&quot;]])
+        if (!is.null(CSS[[&quot;css.tdata&quot;]])) 
+            css.tdata &lt;- ifelse(substring(CSS[[&quot;css.tdata&quot;]], 
+                1, 1) == &quot;+&quot;, paste0(css.tdata, substring(CSS[[&quot;css.tdata&quot;]], 
+                2)), CSS[[&quot;css.tdata&quot;]])
+        if (!is.null(CSS[[&quot;css.arc&quot;]])) 
+            css.arc &lt;- ifelse(substring(CSS[[&quot;css.arc&quot;]], 1, 
+                1) == &quot;+&quot;, paste0(css.arc, substring(CSS[[&quot;css.arc&quot;]], 
+                2)), CSS[[&quot;css.arc&quot;]])
+    }
+    page.style &lt;- sprintf(&quot;&lt;style&gt;\n%s { %s }\n.%s { %s }\n.%s { %s }\n.%s { %s }\n&lt;/style&gt;&quot;, 
+        tag.table, css.table, tag.thead, css.thead, tag.tdata, 
+        css.tdata, tag.arc, css.arc)
+    toWrite &lt;- sprintf(&quot;&lt;html&gt;\n&lt;head&gt;\n&lt;meta http-equiv=\&quot;Content-type\&quot; content=\&quot;text/html;charset=%s\&quot;&gt;\n%s\n&lt;/head&gt;\n&lt;body&gt;\n&quot;, 
+        encoding, page.style)
+    page.content &lt;- &quot;&lt;table&gt;&quot;
+    page.content &lt;- paste0(page.content, &quot;  &lt;tr&gt;\n    &quot;)
+    if (showID) 
+        page.content &lt;- paste0(page.content, &quot;&lt;th class=\&quot;thead\&quot;&gt;ID&lt;/th&gt;&quot;)
+    page.content &lt;- paste0(page.content, &quot;&lt;th class=\&quot;thead\&quot;&gt;Name&lt;/th&gt;&quot;)
+    if (showType) 
+        page.content &lt;- paste0(page.content, &quot;&lt;th class=\&quot;thead\&quot;&gt;Type&lt;/th&gt;&quot;)
+    page.content &lt;- paste0(page.content, &quot;&lt;th class=\&quot;thead\&quot;&gt;Label&lt;/th&gt;&quot;)
+    if (showNA) 
+        page.content &lt;- paste0(page.content, &quot;&lt;th class=\&quot;thead\&quot;&gt;missings&lt;/th&gt;&quot;)
+    if (showValues) 
+        page.content &lt;- paste0(page.content, &quot;&lt;th class=\&quot;thead\&quot;&gt;Values&lt;/th&gt;&quot;)
+    if (showValueLabels) 
+        page.content &lt;- paste0(page.content, &quot;&lt;th class=\&quot;thead\&quot;&gt;Value Labels&lt;/th&gt;&quot;)
+    if (showFreq) 
+        page.content &lt;- paste0(page.content, &quot;&lt;th class=\&quot;thead\&quot;&gt;Freq.&lt;/th&gt;&quot;)
+    if (showPerc) 
+        page.content &lt;- paste0(page.content, &quot;&lt;th class=\&quot;thead\&quot;&gt;%&lt;/th&gt;&quot;)
+    if (showWtdFreq) 
+        page.content &lt;- paste0(page.content, &quot;&lt;th class=\&quot;thead\&quot;&gt;weighted Freq.&lt;/th&gt;&quot;)
+    if (showWtdPerc) 
+        page.content &lt;- paste0(page.content, &quot;&lt;th class=\&quot;thead\&quot;&gt;weighted %&lt;/th&gt;&quot;)
+    page.content &lt;- paste0(page.content, &quot;\n  &lt;/tr&gt;\n&quot;)
+    if (!hideProgressBar) 
+        pb &lt;- utils::txtProgressBar(min = 0, max = colcnt, style = 3)
+    for (ccnt in 1:colcnt) {
+        index &lt;- id[ccnt]
+        arcstring &lt;- &quot;&quot;
+        if (alternateRowColors) 
+            arcstring &lt;- ifelse(sjmisc::is_even(ccnt), &quot; arc&quot;, 
+                &quot;&quot;)
+        page.content &lt;- paste0(page.content, &quot;  &lt;tr&gt;\n&quot;)
+        if (showID) 
+            page.content &lt;- paste0(page.content, sprintf(&quot;    &lt;td class=\&quot;tdata%s\&quot;&gt;%i&lt;/td&gt;\n&quot;, 
+                arcstring, index))
+        page.content &lt;- paste0(page.content, sprintf(&quot;    &lt;td class=\&quot;tdata%s\&quot;&gt;%s&lt;/td&gt;\n&quot;, 
+            arcstring, colnames(x)[index]))
+        if (showType) {
+            vartype &lt;- get.vartype(x[[index]])
+            page.content &lt;- paste0(page.content, sprintf(&quot;    &lt;td class=\&quot;tdata%s\&quot;&gt;%s&lt;/td&gt;\n&quot;, 
+                arcstring, vartype))
+        }
+        if (index &lt;= length(df.var)) {
+            varlab &lt;- df.var[index]
+            if (!is.null(breakVariableNamesAt)) {
+                varlab &lt;- sjmisc::word_wrap(varlab, breakVariableNamesAt, 
+                  &quot;&lt;br&gt;&quot;)
+            }
+        }
+        else {
+            varlab &lt;- &quot;&lt;NA&gt;&quot;
+        }
+        page.content &lt;- paste0(page.content, sprintf(&quot;    &lt;td class=\&quot;tdata%s\&quot;&gt;%s&lt;/td&gt;\n&quot;, 
+            arcstring, varlab))
+        if (showNA) {
+            page.content &lt;- paste0(page.content, sprintf(&quot;    &lt;td class=\&quot;tdata%s\&quot;&gt;%i (%.2f%%)&lt;/td&gt;\n&quot;, 
+                arcstring, sum(is.na(x[[index]]), na.rm = T), 
+                100 * sum(is.na(x[[index]]), na.rm = T)/nrow(x)))
+        }
+        if (showValues) {
+            valstring &lt;- c(&quot;&quot;)
+            if (index &lt;= ncol(x)) {
+                vals &lt;- sjmisc::get_values(x[[index]])
+                if (!is.null(vals)) {
+                  for (i in 1:length(vals)) {
+                    valstring &lt;- paste0(valstring, vals[i])
+                    if (i &lt; length(vals)) 
+                      valstring &lt;- paste0(valstring, &quot;&lt;br&gt;&quot;)
+                  }
+                }
+            }
+            else {
+                valstring &lt;- &quot;&lt;NA&gt;&quot;
+            }
+            page.content &lt;- paste0(page.content, sprintf(&quot;    &lt;td class=\&quot;tdata%s\&quot;&gt;%s&lt;/td&gt;\n&quot;, 
+                arcstring, valstring))
+        }
+        if (showValueLabels) {
+            valstring &lt;- c(&quot;&quot;)
+            if (index &lt;= length(df.val)) {
+                vals &lt;- df.val[[index]]
+                if (!is.null(vals)) {
+                  for (i in 1:length(vals)) {
+                    valstring &lt;- paste0(valstring, vals[i])
+                    if (i &lt; length(vals)) 
+                      valstring &lt;- paste0(valstring, &quot;&lt;br&gt;&quot;)
+                  }
+                }
+            }
+            else {
+                valstring &lt;- &quot;&lt;NA&gt;&quot;
+            }
+            page.content &lt;- paste0(page.content, sprintf(&quot;    &lt;td class=\&quot;tdata%s\&quot;&gt;%s&lt;/td&gt;\n&quot;, 
+                arcstring, valstring))
+        }
+        if (showFreq) {
+            page.content &lt;- paste0(page.content, sprintf(&quot;    &lt;td class=\&quot;tdata%s\&quot;&gt;%s&lt;/td&gt;\n&quot;, 
+                arcstring, frq.value(index, x, df.val)))
+        }
+        if (showPerc) {
+            page.content &lt;- paste0(page.content, sprintf(&quot;    &lt;td class=\&quot;tdata%s\&quot;&gt;%s&lt;/td&gt;\n&quot;, 
+                arcstring, prc.value(index, x, df.val)))
+        }
+        if (showWtdFreq &amp;&amp; !is.null(weightBy)) {
+            page.content &lt;- paste0(page.content, sprintf(&quot;    &lt;td class=\&quot;tdata%s\&quot;&gt;%s&lt;/td&gt;\n&quot;, 
+                arcstring, frq.value(index, x, df.val, weightBy)))
+        }
+        if (showPerc &amp;&amp; !is.null(weightBy)) {
+            page.content &lt;- paste0(page.content, sprintf(&quot;    &lt;td class=\&quot;tdata%s\&quot;&gt;%s&lt;/td&gt;\n&quot;, 
+                arcstring, prc.value(index, x, df.val, weightBy)))
+        }
+        if (!hideProgressBar) 
+            utils::setTxtProgressBar(pb, ccnt)
+        page.content &lt;- paste0(page.content, &quot;  &lt;/tr&gt;\n&quot;)
+    }
+    if (!hideProgressBar) 
+        close(pb)
+    page.content &lt;- paste(page.content, &quot;&lt;/table&gt;&quot;, sep = &quot;\n&quot;)
+    toWrite &lt;- paste0(toWrite, sprintf(&quot;%s\n&lt;/body&gt;&lt;/html&gt;&quot;, 
+        page.content))
+    knitr &lt;- page.content
+    knitr &lt;- gsub(&quot;class=&quot;, &quot;style=&quot;, knitr, fixed = TRUE, useBytes = TRUE)
+    knitr &lt;- gsub(&quot;&lt;table&quot;, sprintf(&quot;&lt;table style=\&quot;%s\&quot;&quot;, css.table), 
+        knitr, fixed = TRUE, useBytes = TRUE)
+    knitr &lt;- gsub(tag.tdata, css.tdata, knitr, fixed = TRUE, 
+        useBytes = TRUE)
+    knitr &lt;- gsub(tag.thead, css.thead, knitr, fixed = TRUE, 
+        useBytes = TRUE)
+    knitr &lt;- gsub(tag.arc, css.arc, knitr, fixed = TRUE, useBytes = TRUE)
+    if (remove.spaces) {
+        knitr &lt;- sju.rmspc(knitr)
+        toWrite &lt;- sju.rmspc(toWrite)
+        page.content &lt;- sju.rmspc(page.content)
+    }
+    out.html.table(no.output, file, knitr, toWrite, useViewer)
+    invisible(structure(class = c(&quot;sjTable&quot;, &quot;view_df&quot;), list(page.style = page.style, 
+        page.content = page.content, output.complete = toWrite, 
+        knitr = knitr)))
+}</code></pre>
+</div>
+<div id="test-the-display-of-date-fields" class="section level2">
+<h2><span class="header-section-number">6.3</span> Test the display of date fields</h2>
 <pre class="r"><code>check.one.date.field &lt;- F # TRUE # FALSE
 if (check.one.date.field) {
     # Test displaying as dataframe some json-encoded data from a date button field definition
@@ -817,8 +1054,9 @@ if (check.one.date.field) {
     my.field.data.test &lt;- as.data.frame(my.df.c[,my.field.colname.test])[,1]
     
 
-    view_df(as.data.frame(as.character(my.field.data.test)), showType=TRUE)
     view_df(as.data.frame(my.field.data.test), showType=TRUE)
+    view_df2(as.data.frame(my.field.data.test), showType=TRUE)
+    view_df(as.data.frame(as.character(my.field.data.test)), showType=TRUE)
     sjt.df(as.data.frame(as.character(my.field.data.test)), showType=TRUE)
     #view_df(data.frame(my.field.data2.test))
     #my.field.data3 &lt;- set_labels(my.field.data.test, memisc::labels(my.field.labels.test), 
@@ -828,8 +1066,9 @@ if (check.one.date.field) {
 
 }</code></pre>
 </div>
+</div>
 <div id="check-field-types-and-filter-out-unwanted-fields" class="section level1">
-<h1>Check field types and filter out unwanted fields</h1>
+<h1><span class="header-section-number">7</span> Check field types and filter out unwanted fields</h1>
 <pre class="r"><code># Have a look at the columns and some of their values of the tracker field definitions (my.tfd)
 head(my.tfd)</code></pre>
 <pre><code>##   fieldId trackerId                            name
@@ -910,8 +1149,9 @@ table(my.tfd[grep(&quot;options&quot;, my.tfd$options, fixed=TRUE),&quot;type&qu
 #
 # Special handling will be needed also for field type:
 # f: Date and Time</code></pre>
-<div id="cleanup-from-tracker-field-definition-my.tfd" class="section level2">
-<h2>Cleanup from TRACKER FIELD DEFINITION (my.tfd)</h2>
+</div>
+<div id="cleanup-from-tracker-field-definition-my.tfd" class="section level1">
+<h1><span class="header-section-number">8</span> Cleanup from TRACKER FIELD DEFINITION (my.tfd)</h1>
 <pre class="r"><code># FROM TRACKER FIELD DEFINITION (my.tfd)
 # --------------------------------------
 # We can start by removing them from the my.tfd to be displayed as results. We don't do a standard fixed grep to &quot;h&quot; since that would get also the field type &quot;math&quot;. Therefore, we grep with a regular expression for &quot;h&quot; at the beggining of the sentence/value and ending with that character also.
@@ -924,9 +1164,8 @@ fields.headers.fieldId &lt;- my.tfd[fields.headers.idx,&quot;fieldId&quot;]
 my.tfd &lt;- my.tfd[-fields.headers.idx,]
 #colnames(my.tfd)
 #head(my.tfd[order(my.tfd$fieldId, decreasing=FALSE),],10)</code></pre>
-</div>
 <div id="cleanup-from-from-tracker-data-my.df.c" class="section level2">
-<h2>Cleanup from FROM TRACKER DATA (my.df.c)</h2>
+<h2><span class="header-section-number">8.1</span> Cleanup from FROM TRACKER DATA (my.df.c)</h2>
 <pre class="r"><code># FROM TRACKER DATA (my.df.c)
 # ---------------------------
 # Remove those fields.headers.fieldId from the Tracker data (my.df.c)
@@ -947,10 +1186,51 @@ my.df.c &lt;- my.df.c[,!my.df.c.col.fieldId.h]
 #colnames(my.df.c.new)[1:10]
 my.df.c &lt;- my.df.c[,-grep(&quot;#Id -- 1&quot;, colnames(my.df.c))]
 my.df.c &lt;- my.df.c[,-grep(&quot;Comentarios -- 3&quot;, colnames(my.df.c))]
-#colnames(my.df.c.new)[1:10]</code></pre>
+#colnames(my.df.c.new)[1:10]
+
+# Convert to factor all columns the carry dates
+my.df.c.date.fname &lt;- grep(&quot;Fecha&quot;, colnames(my.df.c), fixed=F, ignore.case = T, value=T)
+my.df.c[,my.df.c.date.fname] &lt;- lapply(my.df.c[,my.df.c.date.fname] , factor)</code></pre>
 </div>
-<div id="get-the-list-of-fields-tracker-field-definition-my.tfd-with-options" class="section level2">
-<h2>Get the list of fields TRACKER FIELD DEFINITION (my.tfd) with Options</h2>
+<div id="play-with-dates-optional" class="section level2">
+<h2><span class="header-section-number">8.2</span> Play with dates (optional)</h2>
+<pre class="r"><code>play.with.dates &lt;- F # F # T
+if (play.with.dates) {
+  # A. Dates info from  my.df.c
+  my.df.c.date.fname &lt;- grep(&quot;Fecha&quot;, colnames(my.df.c), fixed=F, ignore.case = T, value=T)
+  my.df.c.date.col.idx &lt;- grep(&quot;Fecha&quot;, colnames(my.df.c), fixed=F, ignore.case = T, value=F)
+  my.df.c.date.col.fid &lt;- as.numeric(str_split_fixed(colnames(my.df.c)[my.df.c.date.col.idx], &quot; -- &quot;, n=2)[,2])
+  
+  for (dd in 1:length(my.df.c.date.col.idx)) {
+    # dd &lt;- 1;
+    if (length(str_split(as.character(my.df.c[1,my.df.c.date.col.idx[dd]]), &quot;-&quot;)[[1]]) &gt; 3) {
+      as.Date(my.df.c[,my.df.c.date.col.idx[dd]], format=&quot;%Y-%m-%d %H:%M:%S&quot;)  
+    } else if (length(str_split(as.character(my.df.c[1,my.df.c.date.col.idx[dd]]), &quot;-&quot;)[[1]]) == 3){
+      as.Date(my.df.c[,my.df.c.date.col.idx[dd]], format=&quot;%Y-%m-%d&quot;)  
+    } else {
+      cat(my.df.c[,my.df.c.date.col.idx[dd]])
+      cat(&quot;\n*** Unclear date format. Please revise your date ***\n&quot;)
+    }
+  }
+  
+  #view_df(data.frame(my.df.c))
+  #md &lt;- my.df.c[1,my.df.c.date.col.idx]
+  #md[1:3]
+  #class(md[1,3])
+  #as.Date(md[1,3], format=&quot;%Y-%m-%d %H:%M:%S&quot;)-as.Date(md[1,2], format=&quot;%Y-%m-%d %H:%M:%S&quot;)
+  
+  # B. Dates info from  my.tfd
+  fields.dates.idx &lt;- grep(&quot;^f$&quot;, my.tfd$type, fixed=FALSE)
+  length(fields.dates.idx)
+  # 21
+  # Get the fieldId's corresponding to date type of Field
+  fields.dates.fieldId &lt;- my.tfd[fields.dates.idx,&quot;fieldId&quot;]
+  table(fields.dates.fieldId %in% my.df.c.date.col.fid)
+}</code></pre>
+</div>
+</div>
+<div id="get-the-list-of-fields-tracker-field-definition-my.tfd-with-options" class="section level1">
+<h1><span class="header-section-number">9</span> Get the list of fields TRACKER FIELD DEFINITION (my.tfd) with Options</h1>
 <pre class="r"><code># FROM TRACKER FIELD DEFINITION (my.tfd)
 # --------------------------------------
 #colnames(my.tfd)
@@ -962,9 +1242,8 @@ fields.with.options.idx &lt;- grep(&quot;options&quot;, my.tfd$options, fixed=TR
 # FieldId's for those cases of tracker fields (fields which contain value:label pairs, as options)
 fields.with.options.fieldId &lt;- my.tfd[fields.with.options.idx,&quot;fieldId&quot;]</code></pre>
 </div>
-</div>
 <div id="loop-to-add-valuelabel-pairs-to-all-variables-where-needed" class="section level1">
-<h1>Loop to add value/label pairs to all variables where needed</h1>
+<h1><span class="header-section-number">10</span> Loop to add value/label pairs to all variables where needed</h1>
 <pre class="r"><code># Get the column numbers of the variables that contain data that needs to be labelled properly
 # Identify the data columns that require value:label pair fixing
 #head(my.df.c)
@@ -2123,8 +2402,8 @@ for (ff in 1:length(fields.with.options.fieldId)) {
 ##  (120/120) Processing fieldId: 552</code></pre>
 <pre class="r"><code> #str(my.df.c)</code></pre>
 </div>
-<div id="convert-the-tracker-data-to-data.set-for-package-memisc" class="section level1">
-<h1>Convert the tracker data to data.set for package memisc</h1>
+<div id="convert-the-tracker-data-to-data.set-for-package-memisc-optional" class="section level1">
+<h1><span class="header-section-number">11</span> Convert the tracker data to data.set for package memisc (Optional)</h1>
 <pre class="r"><code># Our data is still stored as a matrix.
 #class(my.df.c)
 
@@ -2136,10 +2415,1572 @@ for (ff in 1:length(fields.with.options.fieldId)) {
 #class(my.ds)</code></pre>
 </div>
 <div id="produce-some-description-out-of-the-data" class="section level1">
-<h1>Produce some description out of the data</h1>
+<h1><span class="header-section-number">12</span> Produce some description out of the data</h1>
 <pre class="r"><code>require(sjmisc)
 require(sjPlot)
-view_df(data.frame(my.df.c), 
+
+# Test col by col to see where the problem is
+for (cc in 1:length(colnames(my.df.c))) {
+    view_df(data.frame(my.df.c[,colnames(my.df.c)[cc]]), 
+            file=file.path(logsRelDir, paste0(my.base.filename,&quot;_view_df_col&quot;, 
+                                                 cc,&quot;.html&quot;)),
+            showFreq = TRUE, showPerc = TRUE, encoding = &quot;UTF-8&quot;, showType=TRUE)
+}</code></pre>
+<pre><code>## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L,
+## NA), .Label = c(&quot;admin&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L,
+## NA), .Label = c(&quot;admin&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label
+## = &quot;2014-12-20 14:14:00&quot;, class = &quot;factor&quot;)): invalid factor level, NA
+## generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label
+## = &quot;2014-12-20 14:14:00&quot;, class = &quot;factor&quot;)): invalid factor level, NA
+## generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;2015-11-13 03:18:00&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;2015-11-13 03:18:00&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label
+## = &quot;2015-10-25 17:00:00&quot;, class = &quot;factor&quot;)): invalid factor level, NA
+## generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label
+## = &quot;2015-10-25 17:00:00&quot;, class = &quot;factor&quot;)): invalid factor level, NA
+## generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;2004-06-05 03:04:00&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;2004-06-05 03:04:00&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;2012-09-18 14:17:00&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;2012-09-18 14:17:00&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
+## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
+<pre><code>## 
+  |                                                                       
+  |=================================================================| 100%
+## 
+  |                                                                       
+  |                                                                 |   0%
+  |                                                                       
+  |=================================================================| 100%</code></pre>
+<pre class="r"><code>view_df(data.frame(my.df.c), 
         file=file.path(resultsRelDir, paste0(my.base.filename,&quot;_view_df.html&quot;)),
         showFreq = TRUE, showPerc = TRUE, encoding = &quot;UTF-8&quot;, showType=TRUE)</code></pre>
 <pre><code>## 
@@ -2155,7 +3996,12 @@ view_df(data.frame(my.df.c),
 ## invalid factor level, NA generated</code></pre>
 <pre><code>## 
   |                                                                       
-  |=                                                                |   1%
+  |=                                                                |   1%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
   |                                                                       
   |=                                                                |   2%
   |                                                                       
@@ -2204,6 +4050,10 @@ view_df(data.frame(my.df.c),
 <pre><code>## 
   |                                                                       
   |========                                                         |  12%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
 <pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
 ## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
 <pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
@@ -2224,9 +4074,18 @@ view_df(data.frame(my.df.c),
 ## invalid factor level, NA generated</code></pre>
 <pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
 ## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
 <pre><code>## 
   |                                                                       
-  |==========                                                       |  15%
+  |==========                                                       |  15%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
   |                                                                       
   |==========                                                       |  16%</code></pre>
 <pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
@@ -2257,7 +4116,12 @@ view_df(data.frame(my.df.c),
 ## invalid factor level, NA generated</code></pre>
 <pre><code>## 
   |                                                                       
-  |==============                                                   |  22%
+  |==============                                                   |  22%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
   |                                                                       
   |===============                                                  |  23%
   |                                                                       
@@ -2381,7 +4245,12 @@ view_df(data.frame(my.df.c),
 ## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
 <pre><code>## 
   |                                                                       
-  |================================                                 |  49%
+  |================================                                 |  49%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
   |                                                                       
   |================================                                 |  50%</code></pre>
 <pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
@@ -2394,15 +4263,34 @@ view_df(data.frame(my.df.c),
   |                                                                       
   |=================================                                |  51%
   |                                                                       
-  |==================================                               |  52%
+  |==================================                               |  52%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
   |                                                                       
   |==================================                               |  53%
   |                                                                       
-  |===================================                              |  53%
+  |===================================                              |  53%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
   |                                                                       
   |===================================                              |  54%
   |                                                                       
-  |====================================                             |  55%
+  |====================================                             |  55%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
   |                                                                       
   |====================================                             |  56%
   |                                                                       
@@ -2453,7 +4341,14 @@ view_df(data.frame(my.df.c),
   |                                                                       
   |==========================================                       |  65%
   |                                                                       
-  |===========================================                      |  66%
+  |===========================================                      |  66%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label
+## = &quot;2014-12-20 14:14:00&quot;, class = &quot;factor&quot;)): invalid factor level, NA
+## generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label
+## = &quot;2014-12-20 14:14:00&quot;, class = &quot;factor&quot;)): invalid factor level, NA
+## generated</code></pre>
+<pre><code>## 
   |                                                                       
   |===========================================                      |  67%
   |                                                                       
@@ -2472,9 +4367,20 @@ view_df(data.frame(my.df.c),
   |                                                                       
   |==============================================                   |  70%
   |                                                                       
-  |==============================================                   |  71%
+  |==============================================                   |  71%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;2015-11-13 03:18:00&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;2015-11-13 03:18:00&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
   |                                                                       
   |===============================================                  |  72%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label
+## = &quot;2015-10-25 17:00:00&quot;, class = &quot;factor&quot;)): invalid factor level, NA
+## generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label
+## = &quot;2015-10-25 17:00:00&quot;, class = &quot;factor&quot;)): invalid factor level, NA
+## generated</code></pre>
 <pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
 ## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
 <pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, NA), .Label =
@@ -2650,9 +4556,19 @@ view_df(data.frame(my.df.c),
 ## &quot;&quot;, class = &quot;factor&quot;)): invalid factor level, NA generated</code></pre>
 <pre><code>## 
   |                                                                       
-  |==========================================================       |  89%
+  |==========================================================       |  89%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;2004-06-05 03:04:00&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;2004-06-05 03:04:00&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
   |                                                                       
-  |==========================================================       |  90%
+  |==========================================================       |  90%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;2012-09-18 14:17:00&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
+## NA), .Label = c(&quot;2012-09-18 14:17:00&quot;, : invalid factor level, NA generated</code></pre>
+<pre><code>## 
   |                                                                       
   |===========================================================      |  90%</code></pre>
 <pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L,
@@ -2665,7 +4581,12 @@ view_df(data.frame(my.df.c),
   |                                                                       
   |============================================================     |  92%
   |                                                                       
-  |============================================================     |  93%
+  |============================================================     |  93%</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## Warning in `[&lt;-.factor`(`*tmp*`, ri, value = structure(c(1L, 2L, 3L, 4L, :
+## invalid factor level, NA generated</code></pre>
+<pre><code>## 
   |                                                                       
   |=============================================================    |  93%
   |                                                                       
@@ -2724,12 +4645,516 @@ view_df(data.frame(my.df.c),
   |                                                                       
   |=================================================================| 100%</code></pre>
 <pre class="r"><code>#view_df(data.frame(my.df.c), showFreq = TRUE, showPerc = TRUE) #  # As before, but with frequencies and percentages (as a &quot;codebook&quot;)
-sjt.df(as.data.frame(as.character(my.df.c)),
+sjt.df(as.data.frame(my.df.c),
        file=file.path(resultsRelDir, paste0(my.base.filename,&quot;_sjt.df.html&quot;)),
        showType=TRUE)</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to min; returning
+## Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning in FUN(newX[, i], ...): no non-missing arguments to max; returning
+## -Inf</code></pre>
 <pre><code>## 
   |                                                                       
   |                                                                 |   0%
+  |                                                                       
+  |=                                                                |   1%
+  |                                                                       
+  |=                                                                |   2%
+  |                                                                       
+  |==                                                               |   3%
+  |                                                                       
+  |==                                                               |   4%
+  |                                                                       
+  |===                                                              |   4%
+  |                                                                       
+  |===                                                              |   5%
+  |                                                                       
+  |====                                                             |   6%
+  |                                                                       
+  |====                                                             |   7%
+  |                                                                       
+  |=====                                                            |   7%
+  |                                                                       
+  |=====                                                            |   8%
+  |                                                                       
+  |======                                                           |   9%
+  |                                                                       
+  |======                                                           |  10%
+  |                                                                       
+  |=======                                                          |  10%
+  |                                                                       
+  |=======                                                          |  11%
+  |                                                                       
+  |========                                                         |  12%
+  |                                                                       
+  |========                                                         |  13%
+  |                                                                       
+  |=========                                                        |  13%
+  |                                                                       
+  |=========                                                        |  14%
+  |                                                                       
+  |==========                                                       |  15%
+  |                                                                       
+  |==========                                                       |  16%
+  |                                                                       
+  |===========                                                      |  16%
+  |                                                                       
+  |===========                                                      |  17%
+  |                                                                       
+  |============                                                     |  18%
+  |                                                                       
+  |============                                                     |  19%
+  |                                                                       
+  |=============                                                    |  20%
+  |                                                                       
+  |==============                                                   |  21%
+  |                                                                       
+  |==============                                                   |  22%
+  |                                                                       
+  |===============                                                  |  23%
+  |                                                                       
+  |===============                                                  |  24%
+  |                                                                       
+  |================                                                 |  24%
+  |                                                                       
+  |================                                                 |  25%
+  |                                                                       
+  |=================                                                |  26%
+  |                                                                       
+  |=================                                                |  27%
+  |                                                                       
+  |==================                                               |  27%
+  |                                                                       
+  |==================                                               |  28%
+  |                                                                       
+  |===================                                              |  29%
+  |                                                                       
+  |===================                                              |  30%
+  |                                                                       
+  |====================                                             |  30%
+  |                                                                       
+  |====================                                             |  31%
+  |                                                                       
+  |=====================                                            |  32%
+  |                                                                       
+  |=====================                                            |  33%
+  |                                                                       
+  |======================                                           |  33%
+  |                                                                       
+  |======================                                           |  34%
+  |                                                                       
+  |=======================                                          |  35%
+  |                                                                       
+  |=======================                                          |  36%
+  |                                                                       
+  |========================                                         |  36%
+  |                                                                       
+  |========================                                         |  37%
+  |                                                                       
+  |=========================                                        |  38%
+  |                                                                       
+  |=========================                                        |  39%
+  |                                                                       
+  |==========================                                       |  40%
+  |                                                                       
+  |===========================                                      |  41%
+  |                                                                       
+  |===========================                                      |  42%
+  |                                                                       
+  |============================                                     |  43%
+  |                                                                       
+  |============================                                     |  44%
+  |                                                                       
+  |=============================                                    |  44%
+  |                                                                       
+  |=============================                                    |  45%
+  |                                                                       
+  |==============================                                   |  46%
+  |                                                                       
+  |==============================                                   |  47%
+  |                                                                       
+  |===============================                                  |  47%
+  |                                                                       
+  |===============================                                  |  48%
+  |                                                                       
+  |================================                                 |  49%
+  |                                                                       
+  |================================                                 |  50%
+  |                                                                       
+  |=================================                                |  50%
+  |                                                                       
+  |=================================                                |  51%
+  |                                                                       
+  |==================================                               |  52%
+  |                                                                       
+  |==================================                               |  53%
+  |                                                                       
+  |===================================                              |  53%
+  |                                                                       
+  |===================================                              |  54%
+  |                                                                       
+  |====================================                             |  55%
+  |                                                                       
+  |====================================                             |  56%
+  |                                                                       
+  |=====================================                            |  56%
+  |                                                                       
+  |=====================================                            |  57%
+  |                                                                       
+  |======================================                           |  58%
+  |                                                                       
+  |======================================                           |  59%
+  |                                                                       
+  |=======================================                          |  60%
+  |                                                                       
+  |========================================                         |  61%
+  |                                                                       
+  |========================================                         |  62%
+  |                                                                       
+  |=========================================                        |  63%
+  |                                                                       
+  |=========================================                        |  64%
+  |                                                                       
+  |==========================================                       |  64%
+  |                                                                       
+  |==========================================                       |  65%
+  |                                                                       
+  |===========================================                      |  66%
+  |                                                                       
+  |===========================================                      |  67%
+  |                                                                       
+  |============================================                     |  67%
+  |                                                                       
+  |============================================                     |  68%
+  |                                                                       
+  |=============================================                    |  69%
+  |                                                                       
+  |=============================================                    |  70%
+  |                                                                       
+  |==============================================                   |  70%
+  |                                                                       
+  |==============================================                   |  71%
+  |                                                                       
+  |===============================================                  |  72%
+  |                                                                       
+  |===============================================                  |  73%
+  |                                                                       
+  |================================================                 |  73%
+  |                                                                       
+  |================================================                 |  74%
+  |                                                                       
+  |=================================================                |  75%
+  |                                                                       
+  |=================================================                |  76%
+  |                                                                       
+  |==================================================               |  76%
+  |                                                                       
+  |==================================================               |  77%
+  |                                                                       
+  |===================================================              |  78%
+  |                                                                       
+  |===================================================              |  79%
+  |                                                                       
+  |====================================================             |  80%
+  |                                                                       
+  |=====================================================            |  81%
+  |                                                                       
+  |=====================================================            |  82%
+  |                                                                       
+  |======================================================           |  83%
+  |                                                                       
+  |======================================================           |  84%
+  |                                                                       
+  |=======================================================          |  84%
+  |                                                                       
+  |=======================================================          |  85%
+  |                                                                       
+  |========================================================         |  86%
+  |                                                                       
+  |========================================================         |  87%
+  |                                                                       
+  |=========================================================        |  87%
+  |                                                                       
+  |=========================================================        |  88%
+  |                                                                       
+  |==========================================================       |  89%
+  |                                                                       
+  |==========================================================       |  90%
+  |                                                                       
+  |===========================================================      |  90%
+  |                                                                       
+  |===========================================================      |  91%
+  |                                                                       
+  |============================================================     |  92%
+  |                                                                       
+  |============================================================     |  93%
+  |                                                                       
+  |=============================================================    |  93%
+  |                                                                       
+  |=============================================================    |  94%
+  |                                                                       
+  |==============================================================   |  95%
+  |                                                                       
+  |==============================================================   |  96%
+  |                                                                       
+  |===============================================================  |  96%
+  |                                                                       
+  |===============================================================  |  97%
+  |                                                                       
+  |================================================================ |  98%
+  |                                                                       
+  |================================================================ |  99%
   |                                                                       
   |=================================================================| 100%</code></pre>
 <pre class="r"><code>#view_df(data.frame(my.ds), file=paste0(&quot;view_df_my.ds&quot;, &quot;.html&quot;))
@@ -2738,41 +5163,18 @@ sjt.df(as.data.frame(as.character(my.df.c)),
 #sjt.frq (data.frame(my.df.c)[,10]) # For one variable, such as &quot;Sexo -- 9&quot;, which is #10 here.</code></pre>
 </div>
 <div id="tweak-data-and-labels-through-gui-optional" class="section level1">
-<h1>Tweak data and labels through GUI (Optional)</h1>
-<pre class="r"><code>require(Rz)</code></pre>
-<pre><code>## Loading required package: Rz
-## Loading required package: grid
-## Loading required package: foreign
-## Loading required package: psych
-## 
-## Attaching package: 'psych'
-## 
-## The following objects are masked from 'package:ggplot2':
-## 
-##     %+%, alpha
-## 
-## The following object is masked from 'package:sjmisc':
-## 
-##     phi
-## 
-## The following objects are masked from 'package:scales':
-## 
-##     alpha, rescale
-## 
-## ################################ Rz ################################
-##                        Excute Rz() to start,                        
-##       or you can start from menu bar if you use R on Windows.       
-## ####################################################################</code></pre>
-<pre class="r"><code>#Rz()</code></pre>
+<h1><span class="header-section-number">13</span> Tweak data and labels through GUI (Optional)</h1>
+<pre class="r"><code>#require(Rz)
+#Rz()</code></pre>
 </div>
 <div id="create-codebook-optional" class="section level1">
-<h1>Create Codebook (optional)</h1>
+<h1><span class="header-section-number">14</span> Create Codebook (Optional)</h1>
 <pre class="r"><code># CodeBooks
 # ----------
 # Add here the commands to create a codebook from memisc, in case we need it. But since we don't, it seems, then we skip this part, for the time being.</code></pre>
 </div>
-<div id="some-ways-to-make-descriptive-statistics" class="section level1">
-<h1>Some ways to make descriptive statistics</h1>
+<div id="some-ways-to-make-descriptive-statistics-optional" class="section level1">
+<h1><span class="header-section-number">15</span> Some ways to make descriptive statistics (Optional)</h1>
 <pre class="r"><code># See http://r-es.org/7jornadasR/ponencias/jose_ignacio_casas.pdf (Slide 21 onwards)
 #dim(my.t.fieldIds)
 
@@ -2821,7 +5223,13 @@ sjt.df(as.data.frame(as.character(my.df.c)),
 #my.df &lt;- set_labels(my.df, c(str_split(colnames(my.df), &quot;\\.&quot;)[[1]][1],
 #                                 str_split(colnames(my.df), &quot;\\.&quot;)[[2]][1],
 #                                 str_split(colnames(my.df), &quot;\\.&quot;)[[3]][1]))</code></pre>
+</div>
+<div id="store-objects-into-an-rda" class="section level1">
+<h1><span class="header-section-number">16</span> Store objects into an Rda</h1>
 <p>Note that the <code>echo = FALSE</code> parameter was added to the code chunk to prevent printing of the R code that generated the plot.</p>
+</div>
+<div id="stored-session-info" class="section level1">
+<h1><span class="header-section-number">17</span> Stored session info</h1>
 <pre class="r"><code>###################################################
 # Store session info (package versions, etc) in the logs folder
 ###################################################
@@ -2866,31 +5274,29 @@ cat(&quot;Sys.info() : \n&quot;)</code></pre>
 ## [11] LC_MEASUREMENT=ca_ES.UTF-8 LC_IDENTIFICATION=C       
 ## 
 ## attached base packages:
-## [1] grid      stats     graphics  grDevices utils     datasets  methods  
-## [8] base     
+## [1] stats     graphics  grDevices utils     datasets  methods   base     
 ## 
 ## other attached packages:
-##  [1] Rz_0.9-1         psych_1.5.8      foreign_0.8-66   memisc_0.99.3.3 
-##  [5] MASS_7.3-45      lattice_0.20-33  dplyr_0.4.3      readr_0.2.2     
-##  [9] jsonlite_0.9.19  RMySQL_0.10.7    DBI_0.3.1        data.table_1.9.6
-## [13] stringr_1.0.0    stringi_1.0-1    httr_1.0.0       ggplot2_2.0.0   
-## [17] sjmisc_1.4       sjPlot_1.8.4     scales_0.3.0     devtools_1.9.1  
-## [21] rCharts_0.4.5   
+##  [1] memisc_0.99.3.3  MASS_7.3-45      lattice_0.20-33  versions_0.1    
+##  [5] dplyr_0.4.3      readr_0.2.2      jsonlite_0.9.19  RMySQL_0.10.7   
+##  [9] DBI_0.3.1        data.table_1.9.6 stringr_1.0.0    stringi_1.0-1   
+## [13] httr_1.0.0       ggplot2_2.0.0    sjmisc_1.4       sjPlot_1.8.4    
+## [17] scales_0.3.0     devtools_1.9.1   rCharts_0.4.5   
 ## 
 ## loaded via a namespace (and not attached):
-##  [1] splines_3.2.3      colorspace_1.2-6   htmltools_0.3     
-##  [4] yaml_2.1.13        mgcv_1.8-11        chron_2.3-47      
-##  [7] nloptr_1.0.4       plyr_1.8.3         MatrixModels_0.4-1
-## [10] munsell_0.4.2      gtable_0.1.2       memoise_0.2.1     
-## [13] evaluate_0.8       knitr_1.11         SparseM_1.7       
-## [16] quantreg_5.19      pbkrtest_0.4-5     parallel_3.2.3    
-## [19] curl_0.9.4         Rcpp_0.12.2        formatR_1.2.1     
-## [22] lme4_1.1-10        mnormt_1.5-3       digest_0.6.8      
-## [25] RJSONIO_1.3-0      RGtk2_2.20.31      tools_3.2.3       
-## [28] magrittr_1.5       whisker_0.3-2      car_2.1-1         
-## [31] tidyr_0.4.0        Matrix_1.2-3       assertthat_0.1    
-## [34] minqa_1.2.4        rmarkdown_0.9      R6_2.1.1          
-## [37] nnet_7.3-12        nlme_3.1-123</code></pre>
+##  [1] Rcpp_0.12.2        formatR_1.2.1      nloptr_1.0.4      
+##  [4] plyr_1.8.3         tools_3.2.3        digest_0.6.8      
+##  [7] lme4_1.1-10        evaluate_0.8       memoise_0.2.1     
+## [10] gtable_0.1.2       nlme_3.1-123       mgcv_1.8-11       
+## [13] psych_1.5.8        Matrix_1.2-3       curl_0.9.4        
+## [16] yaml_2.1.13        parallel_3.2.3     SparseM_1.7       
+## [19] knitr_1.11         MatrixModels_0.4-1 grid_3.2.3        
+## [22] nnet_7.3-12        R6_2.1.1           rmarkdown_0.9     
+## [25] RJSONIO_1.3-0      minqa_1.2.4        tidyr_0.4.0       
+## [28] car_2.1-1          magrittr_1.5       whisker_0.3-2     
+## [31] htmltools_0.3      splines_3.2.3      mnormt_1.5-3      
+## [34] assertthat_0.1     pbkrtest_0.4-4     colorspace_1.2-6  
+## [37] quantreg_5.19      munsell_0.4.2      chron_2.3-47</code></pre>
 <pre class="r"><code>sink()</code></pre>
 </div>
 
