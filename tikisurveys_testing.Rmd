@@ -353,7 +353,7 @@ if (check.one.rb.field) {
     # Display with row from the my.tt df object contains the values for the definition of fieldId 9 (Sexo -- 9)
     #which(my.tfd$fieldId==9)
     # [1] 135
-    #my.tfd[which(my.tfd$fieldId==9),"options"]
+    #which(my.tfd$fieldId==9)
     # [1] "{\"options\":[\"0=Mujer\",\"1=Varon\",\"99=ns/nc\"]}"
     #table(as.numeric(my.tfd$fieldId)==9)
     #class(my.tfd$fieldId)
@@ -786,6 +786,56 @@ my.df.c[,my.df.c.date.fname] <- lapply(my.df.c[,my.df.c.date.fname] , factor)
 
 ```
 
+## Tweak numeric variables (convert to character)
+
+```{r Tweak numeric variables  (convert to character)}
+  # Convert to factor also the numeric values
+fields.numbers.idx <- grep("^n$", my.tfd$type, fixed=FALSE)
+length(fields.numbers.idx)
+# 42
+
+# Get the fieldId's corresponding to number type of Field
+fields.numbers.fieldId <- my.tfd[fields.numbers.idx,"fieldId"]
+fields.numbers.fname <- my.tfd[fields.numbers.idx,"name"]
+fields.numbers.fname.full <- paste0(fields.numbers.fname , " -- ", fields.numbers.fieldId) # As a Column name of my.df
+
+play.with.numbers <- F # F # T
+if (play.with.numbers) {
+    # Test for the missing info in Dates
+    my.num.test.field <- 10
+    my.num.test.field.row <- which(my.tfd$fieldId==my.num.test.field)
+    # [1] 118
+    my.tfd[which(my.tfd$fieldId==my.num.test.field),"options"]
+    #[1] "{\"datetime\":\"d\",\"startyear\":\"1900\",\"endyear\":\"2016\",\"blankdate\":\"blank\"}"
+    #table(as.numeric(my.tfd$fieldId)==my.num.test.field)
+    #class(my.tfd$fieldId)
+    my.options.test <- unlist(fromJSON(as.character(my.tfd[which(as.numeric(my.tfd$fieldId) ==
+                                                                   my.num.test.field),"options"])))
+    my.op.tmp.test <- unlist(str_split(my.options.test, "="))
+    
+    #head(my.df[,1:10])
+    #length(colnames(my.df))
+    #[1] 274
+    my.tfd[my.num.test.field.row,]
+    
+    my.field.name.test <- my.tfd[which(my.tfd$fieldId==my.num.test.field),"name"]
+    my.field.id.test <- my.num.test.field
+    my.field.colname.test <- paste0(my.field.name.test , " -- ", my.field.id.test) # As a Column name of my.df
+    my.field.data.test <- as.data.frame(my.df.c[,my.field.colname.test])[,1]
+    
+
+    view_df(as.data.frame(my.field.data.test), showType=TRUE)
+    view_df2(as.data.frame(my.field.data.test), showType=TRUE)
+    view_df(as.data.frame(as.character(my.field.data.test)), showType=TRUE)
+    sjt.df(as.data.frame(as.character(my.field.data.test)), showType=TRUE)
+
+}
+
+# Change class from numeric to character so that numbers are also shown in the view_df html produced
+my.df.c[,fields.numbers.fname.full] <- lapply(my.df.c[,fields.numbers.fname.full] , as.character)
+
+```
+
 ## Play with dates (optional)
 
 ```{r Play with dates}
@@ -975,9 +1025,9 @@ for (ff in 1:length(fields.with.options.fieldId)) {
       
   # Record on disk an html version of this varaible with labels.
   if (any(grepl("Error", try(view_df(as.data.frame(my.field.data.labels.sjmisc), 
-                                   file=file.path(logsRelDir, paste0("view_df_ff", ff,
-                                                  "_fieldId", my.field.id,
-                                                  "_col", my.df.c.col.idx,
+                                   file=file.path(logsRelDir, paste0("view_df_ff", sprintf("%03d", ff),
+                                                  "_fieldId", sprintf("%03d", my.field.id),
+                                                  "_col", sprintf("%03d", my.df.c.col.idx),
                                                   "_", my.field.name,
                                                   ".html")) ), TRUE), ignore.case = TRUE, fixed=FALSE))) {
     cat(paste0("Error in ff", ff, "_fieldId", my.field.id, "_col", my.df.c.col.idx,
@@ -1017,7 +1067,7 @@ require(sjPlot)
 for (cc in 1:length(colnames(my.df.c))) {
     view_df(data.frame(my.df.c[,colnames(my.df.c)[cc]]), 
             file=file.path(logsRelDir, paste0(my.base.filename,"_view_df_col", 
-                                                 cc,".html")),
+                                                 sprintf("%03d", cc),".html")),
             showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE)
 }
  
