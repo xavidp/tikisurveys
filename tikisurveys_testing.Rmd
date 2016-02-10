@@ -812,10 +812,23 @@ my.df.c.strings[,my.df.c.date.fname] <- lapply(my.df.c[,my.df.c.date.fname] , fa
 fields.numbers.idx <- grep("^n$", my.tfd$type, fixed=FALSE)
 length(fields.numbers.idx)
 # 42
+# Add text fields that carry numeric values. They were defined as "text" (type "t") in the tiki definition fields, but readr got them as numeric, since they are mostly carrying numeric values.. 
+# Example: field NHC
+#grep("NHC", my.tfd[,3])
+# [1] 119
+#my.tfd[119,]
+# N  fieldId trackerId name         permName  options type (...)
+#137       7         1  NHC h0_PPaciente_NHC    (...)    t (...)
+# Therefore we add that case also to the numbic variables
+fields.numbers.idx <- c(fields.numbers.idx, grep("NHC", my.tfd[,3]))
+length(fields.numbers.idx)
+# 43
+#grep("Etnia", my.tfd[,3])
+#my.tfd[114,]
+
 fields.math.idx <- grep("^math$|^C$", my.tfd$type, fixed=FALSE)
 length(fields.math.idx)
 my.tfd[fields.math.idx,]
-
 # Get the fieldId's corresponding to number type of Field
 fields.numbers.fieldId <- my.tfd[fields.numbers.idx,"fieldId"]
 fields.numbers.fname <- my.tfd[fields.numbers.idx,"name"]
@@ -824,10 +837,10 @@ fields.math.fieldId <- my.tfd[fields.math.idx,"fieldId"]
 fields.math.fname <- my.tfd[fields.math.idx,"name"]
 fields.math.fname.full <- paste0(fields.math.fname , " -- ", fields.math.fieldId) # As a Column name of my.df
 
-play.with.numbers <- F # F # T
+play.with.numbers <- T # F # T
 if (play.with.numbers) {
     # Test for the missing info in Dates
-    my.num.test.field <- 12
+    my.num.test.field <- 7
     my.num.test.field.row <- which(my.tfd$fieldId==my.num.test.field)
     # [1] 118
     my.tfd[which(my.tfd$fieldId==my.num.test.field),"options"]
@@ -1100,18 +1113,17 @@ for (cc in 1:length(colnames(my.df.c))) {
 view_df(data.frame(my.df.c.strings), 
         file=file.path(resultsRelDir, paste0(my.base.filename,"_view_df.html")),
         showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE)
-#view_df(data.frame(my.df.c), showFreq = TRUE, showPerc = TRUE) #  # As before, but with frequencies and percentages (as a "codebook")
+# Produce the equivalent html but to be embedded in the knitted html produced, not as extra html file on disk
+view_df(data.frame(my.df.c.strings), 
+        showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE, 
+        no.output=TRUE)$knitr
+
 sjt.df(as.data.frame(my.df.c.numbers),
        file=file.path(resultsRelDir, paste0(my.base.filename,"_sjt.df.description.html")),
        showType=TRUE, describe=TRUE)
 sjt.df(as.data.frame(my.df.c.numbers),
        file=file.path(resultsRelDir, paste0(my.base.filename,"_sjt.df.values.html")),
        showType=TRUE, describe=FALSE)
-
-#view_df(data.frame(my.ds), file=paste0("view_df_my.ds", ".html"))
-#view_df(data.frame(my.ds), showFreq = TRUE, showPerc = TRUE) #  # As before, but with frequencies and percentages (as a "codebook")
-
-#sjt.frq (data.frame(my.df.c)[,10]) # For one variable, such as "Sexo -- 9", which is #10 here.
 
 ```
 
