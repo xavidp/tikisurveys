@@ -366,43 +366,31 @@ if (check.one.rb.field) {
     # Test displaying as dataframe some json-encoded data from a radio button field definition
     
     # Display with row from the my.tt df object contains the values for the definition of fieldId 9 (Sexo -- 9)
-    #which(my.tfd$fieldId==9)
-    # [1] 135
-    #which(my.tfd$fieldId==9)
-    # [1] "{\"options\":[\"0=Mujer\",\"1=Varon\",\"99=ns/nc\"]}"
-    #table(as.numeric(my.tfd$fieldId)==9)
-    #class(my.tfd$fieldId)
-    
-    #which(my.tfd$fieldId==549)
-    # [1] 8
-    #my.tfd[which(my.tfd$fieldId==549),"options"]
-    # "{\"options\":[\"0=NO\",\"1=Si\",\"99=NS\\/NC\"]}"
-    #table(as.numeric(my.tfd$fieldId)==549)
-    #class(my.tfd$fieldId)
+    #my.field.colname <- "Sexo -- 9" # As a Column name of my.df
+    #my.field.colname <- "Tabaco -- 19" # As a Column name of my.df
+    #my.field.colname.test <- "AnoxToxMet. Hidroelectro Tipo -- 549" # As a Column name of my.df
 
-  # Test for the missing info in Dates
-    #which(my.tfd$fieldId==8)
+    my.rb.test.field <- 9
+    my.rb.test.field.row <- which(my.tfd$fieldId==my.rb.test.field)
     # [1] 118
-    #my.tfd[which(my.tfd$fieldId==8),"options"]
-    # [1] "{\"datetime\":\"d\",\"startyear\":\"1900\",\"endyear\":\"2016\",\"blankdate\":\"blank\"}"
-    #table(as.numeric(my.tfd$fieldId)==118)
+    my.tfd[which(my.tfd$fieldId==my.rb.test.field),"options"]
+    #[1] "{\"datetime\":\"d\",\"startyear\":\"1900\",\"endyear\":\"2016\",\"blankdate\":\"blank\"}"
+    #table(as.numeric(my.tfd$fieldId)==my.rb.test.field)
     #class(my.tfd$fieldId)
-    my.options.test <- unlist(fromJSON(as.character(my.tfd[which(as.numeric(my.tfd$fieldId)==8),"options"])))
+    my.options.test <- unlist(fromJSON(as.character(my.tfd[which(as.numeric(my.tfd$fieldId) ==
+                                                                   my.rb.test.field),"options"])))
     my.op.tmp.test <- unlist(str_split(my.options.test, "="))
     
     #head(my.df[,1:10])
     #length(colnames(my.df))
     #[1] 274
-    # my.tfd[8,]
-    #str(my.df[,"Sexo -- 9"])
+    my.tfd[my.rb.test.field.row,]
     
-    #my.field.colname <- "Sexo -- 9" # As a Column name of my.df
-    #my.field.colname <- "Tabaco -- 19" # As a Column name of my.df
-    my.field.colname.test <- "AnoxToxMet. Hidroelectro Tipo -- 549" # As a Column name of my.df
-    my.field.name.test <- unlist(str_split(my.field.colname.test, " -- "))[1]
-    my.field.id.test <- unlist(str_split(my.field.colname.test, " -- "))[2]
+    my.field.name.test <- my.tfd[which(my.tfd$fieldId==my.rb.test.field),"name"]
+    my.field.id.test <- my.rb.test.field
+    my.field.colname.test <- paste0(my.field.name.test , " -- ", my.field.id.test) # As a Column name of my.df
     my.field.data.test <- as.data.frame(my.df.c[,my.field.colname.test])[,1]
-    
+ 
     #Recode something like 
                       # "0"     "Mujer" "1"     "Varon" "99"    "ns/nc"
                       # into something like:
@@ -452,7 +440,8 @@ if (check.one.rb.field) {
         # SJMISC LABELS
     # -----------------
     # If there are more labels than levels of values, avoid the error.
-    if (length(table(my.field.labels.test)) != length(table(memisc::labels(my.field.labels.test)))) {
+     # DISABLED condition with a hardcoded FALSE in the if clause
+    if (FALSE && length(table(my.field.labels.test)) != length(table(memisc::labels(my.field.labels.test)))) {
         my.field.data.labels.sjmisc.test <- try(set_labels(my.field.data.test,
                                                       merged.df.test$label)    , TRUE)
                 if (grepl("rror", my.field.data.labels.sjmisc.test, fixed=T)) {
@@ -1018,7 +1007,8 @@ for (ff in 1:length(fields.with.options.fieldId)) {
     # (2b) SJMISC LABELS
     # -----------------
     # If there are more labels than levels of values, avoid the error.
-    if (length(table(my.field.data)) != length(table(memisc::labels(my.field.data.labels.memisc)))) {
+    # DISABLED condition with a hardcoded FALSE in the if clause
+    if (FALSE && length(table(my.field.data)) != length(table(memisc::labels(my.field.data.labels.memisc)))) {
         cat("\n*** Case (2bA) SJMISC LABELS: A - set_labels(my.field.data, merged.df$label)***\n")
         my.field.data.labels.sjmisc <- try(set_labels(my.field.data,
                                                       merged.df$label)    , TRUE)
