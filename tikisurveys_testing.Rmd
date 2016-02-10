@@ -358,9 +358,9 @@ my.tfd[,"options"] <- gsub("\303", "", my.tfd[,"options"], fixed=T) # "" for "" 
 
 # Some tests (before we go for real)
 
-## Test the display of a radio button field
+## Test the display of a radio button field (or other types of fields)
 
-```{r Test the display of a radio button field}
+```{r Test the display of a radio button field (or other types of fields)}
 check.one.rb.field <- F # TRUE # FALSE
 if (check.one.rb.field) {
     # Test displaying as dataframe some json-encoded data from a radio button field definition
@@ -369,28 +369,22 @@ if (check.one.rb.field) {
     #my.field.colname <- "Sexo -- 9" # As a Column name of my.df
     #my.field.colname <- "Tabaco -- 19" # As a Column name of my.df
     #my.field.colname.test <- "AnoxToxMet. Hidroelectro Tipo -- 549" # As a Column name of my.df
-
+      # "TAC evol 48h -- 73" # Type M - Multiple select field type
+      # data: 
+      # [1] "2, 3" "1, 3" "2, 3" "3"    "0"    ""     ""     ""     "0"    ""     ""     "1"    ""     ""     ""     "0"  
     my.rb.test.field <- 9
     my.rb.test.field.row <- which(my.tfd$fieldId==my.rb.test.field)
-    # [1] 118
     my.tfd[which(my.tfd$fieldId==my.rb.test.field),"options"]
-    #[1] "{\"datetime\":\"d\",\"startyear\":\"1900\",\"endyear\":\"2016\",\"blankdate\":\"blank\"}"
-    #table(as.numeric(my.tfd$fieldId)==my.rb.test.field)
-    #class(my.tfd$fieldId)
     my.options.test <- unlist(fromJSON(as.character(my.tfd[which(as.numeric(my.tfd$fieldId) ==
                                                                    my.rb.test.field),"options"])))
     my.op.tmp.test <- unlist(str_split(my.options.test, "="))
     
-    #head(my.df[,1:10])
-    #length(colnames(my.df))
-    #[1] 274
     my.tfd[my.rb.test.field.row,]
     
     my.field.name.test <- my.tfd[which(my.tfd$fieldId==my.rb.test.field),"name"]
     my.field.id.test <- my.rb.test.field
     my.field.colname.test <- paste0(my.field.name.test , " -- ", my.field.id.test) # As a Column name of my.df
     my.field.data.test <- as.data.frame(my.df.c[,my.field.colname.test])[,1]
- 
     #Recode something like 
                       # "0"     "Mujer" "1"     "Varon" "99"    "ns/nc"
                       # into something like:
@@ -403,11 +397,12 @@ if (check.one.rb.field) {
     # and the corresponding labels shown in the form, for further merging of the information 
     # in the memisc::as.item function.
     for (ii in seq(1, length(my.op.tmp.test), by=2)) {
+      #ii <- 1; cc <- 0;
+      #ii <- ii +2
       cc <- cc+1
       my.op.tmp.number.test[cc] <- my.op.tmp.test[ii] 
       my.op.tmp.label.test[cc]  <- my.op.tmp.test[ii+1]
     }
-    
     #my.op.tmp.number # Clea vector of numbers (options in the form)
     #my.op.tmp.label # Clean vector of labels corresponding to the previous options
     
@@ -428,10 +423,13 @@ if (check.one.rb.field) {
                             )
                           )
     memisc::labels(my.field.labels.test)
-    
-    my.labels.df.test <- data.frame(as.numeric(my.op.tmp.number.test),
-                               as.character(my.op.tmp.label.test), stringsAsFactors=FALSE) 
+    # The which !is.na() below is needed for cases of multiselect tracker field types
+    my.labels.df.test <- suppressWarnings(data.frame(as.numeric(my.op.tmp.number.test)[which(!is.na(as.numeric(my.op.tmp.number.test)))],
+                               as.character(my.op.tmp.label.test)[which(!is.na(as.character(my.op.tmp.label.test)))],
+                               stringsAsFactors=FALSE)) 
     colnames(my.labels.df.test) <- c("value", "label")
+    # Pending ToDo: Convert variable into a dummy list of values splitted by comma, containing vectors of values splitted apart  
+    
     df1.test <- data.frame(my.field.data.test)
     colnames(df1.test) <-"value"
     df2.test <- my.labels.df.test
@@ -465,199 +463,6 @@ if (check.one.rb.field) {
 
 }
 
-```
-
-
-## Test function view_df to attempt to tweak it for date fields
-
-```{r Test function view_df to attempt to tweak it for date fields}
-
-view_df2 <- function (x, weightBy = NULL, file = NULL, alternateRowColors = TRUE, 
-    showID = TRUE, showType = FALSE, showValues = TRUE, showValueLabels = TRUE, 
-    showFreq = FALSE, showPerc = FALSE, showWtdFreq = FALSE, 
-    showWtdPerc = FALSE, showNA = FALSE, sortByName = FALSE, 
-    breakVariableNamesAt = 50, encoding = NULL, hideProgressBar = FALSE, 
-    CSS = NULL, useViewer = TRUE, no.output = FALSE, remove.spaces = TRUE) 
-{
-    encoding <- get.encoding(encoding, x)
-    if (!is.data.frame(x)) 
-        stop("Parameter needs to be a data frame!", call. = FALSE)
-    df.var <- sjmisc::get_label(x)
-    df.val <- sjmisc::get_labels(x)
-    colcnt <- ncol(x)
-    id <- 1:colcnt
-    if (sortByName) 
-        id <- id[order(colnames(x))]
-    tag.table <- "table"
-    tag.thead <- "thead"
-    tag.tdata <- "tdata"
-    tag.arc <- "arc"
-    css.table <- "border-collapse:collapse; border:none;"
-    css.thead <- "border-bottom:double; font-style:italic; font-weight:normal; padding:0.2cm; text-align:left; vertical-align:top;"
-    css.tdata <- "padding:0.2cm; text-align:left; vertical-align:top;"
-    css.arc <- "background-color:#eaeaea"
-    if (!is.null(CSS)) {
-        if (!is.null(CSS[["css.table"]])) 
-            css.table <- ifelse(substring(CSS[["css.table"]], 
-                1, 1) == "+", paste0(css.table, substring(CSS[["css.table"]], 
-                2)), CSS[["css.table"]])
-        if (!is.null(CSS[["css.thead"]])) 
-            css.thead <- ifelse(substring(CSS[["css.thead"]], 
-                1, 1) == "+", paste0(css.thead, substring(CSS[["css.thead"]], 
-                2)), CSS[["css.thead"]])
-        if (!is.null(CSS[["css.tdata"]])) 
-            css.tdata <- ifelse(substring(CSS[["css.tdata"]], 
-                1, 1) == "+", paste0(css.tdata, substring(CSS[["css.tdata"]], 
-                2)), CSS[["css.tdata"]])
-        if (!is.null(CSS[["css.arc"]])) 
-            css.arc <- ifelse(substring(CSS[["css.arc"]], 1, 
-                1) == "+", paste0(css.arc, substring(CSS[["css.arc"]], 
-                2)), CSS[["css.arc"]])
-    }
-    page.style <- sprintf("<style>\n%s { %s }\n.%s { %s }\n.%s { %s }\n.%s { %s }\n</style>", 
-        tag.table, css.table, tag.thead, css.thead, tag.tdata, 
-        css.tdata, tag.arc, css.arc)
-    toWrite <- sprintf("<html>\n<head>\n<meta http-equiv=\"Content-type\" content=\"text/html;charset=%s\">\n%s\n</head>\n<body>\n", 
-        encoding, page.style)
-    page.content <- "<table>"
-    page.content <- paste0(page.content, "  <tr>\n    ")
-    if (showID) 
-        page.content <- paste0(page.content, "<th class=\"thead\">ID</th>")
-    page.content <- paste0(page.content, "<th class=\"thead\">Name</th>")
-    if (showType) 
-        page.content <- paste0(page.content, "<th class=\"thead\">Type</th>")
-    page.content <- paste0(page.content, "<th class=\"thead\">Label</th>")
-    if (showNA) 
-        page.content <- paste0(page.content, "<th class=\"thead\">missings</th>")
-    if (showValues) 
-        page.content <- paste0(page.content, "<th class=\"thead\">Values</th>")
-    if (showValueLabels) 
-        page.content <- paste0(page.content, "<th class=\"thead\">Value Labels</th>")
-    if (showFreq) 
-        page.content <- paste0(page.content, "<th class=\"thead\">Freq.</th>")
-    if (showPerc) 
-        page.content <- paste0(page.content, "<th class=\"thead\">%</th>")
-    if (showWtdFreq) 
-        page.content <- paste0(page.content, "<th class=\"thead\">weighted Freq.</th>")
-    if (showWtdPerc) 
-        page.content <- paste0(page.content, "<th class=\"thead\">weighted %</th>")
-    page.content <- paste0(page.content, "\n  </tr>\n")
-    if (!hideProgressBar) 
-        pb <- utils::txtProgressBar(min = 0, max = colcnt, style = 3)
-    for (ccnt in 1:colcnt) {
-        index <- id[ccnt]
-        arcstring <- ""
-        if (alternateRowColors) 
-            arcstring <- ifelse(sjmisc::is_even(ccnt), " arc", 
-                "")
-        page.content <- paste0(page.content, "  <tr>\n")
-        if (showID) 
-            page.content <- paste0(page.content, sprintf("    <td class=\"tdata%s\">%i</td>\n", 
-                arcstring, index))
-        page.content <- paste0(page.content, sprintf("    <td class=\"tdata%s\">%s</td>\n", 
-            arcstring, colnames(x)[index]))
-        if (showType) {
-            vartype <- get.vartype(x[[index]])
-            page.content <- paste0(page.content, sprintf("    <td class=\"tdata%s\">%s</td>\n", 
-                arcstring, vartype))
-        }
-        if (index <= length(df.var)) {
-            varlab <- df.var[index]
-            if (!is.null(breakVariableNamesAt)) {
-                varlab <- sjmisc::word_wrap(varlab, breakVariableNamesAt, 
-                  "<br>")
-            }
-        }
-        else {
-            varlab <- "<NA>"
-        }
-        page.content <- paste0(page.content, sprintf("    <td class=\"tdata%s\">%s</td>\n", 
-            arcstring, varlab))
-        if (showNA) {
-            page.content <- paste0(page.content, sprintf("    <td class=\"tdata%s\">%i (%.2f%%)</td>\n", 
-                arcstring, sum(is.na(x[[index]]), na.rm = T), 
-                100 * sum(is.na(x[[index]]), na.rm = T)/nrow(x)))
-        }
-        if (showValues) {
-            valstring <- c("")
-            if (index <= ncol(x)) {
-                vals <- sjmisc::get_values(x[[index]])
-                if (!is.null(vals)) {
-                  for (i in 1:length(vals)) {
-                    valstring <- paste0(valstring, vals[i])
-                    if (i < length(vals)) 
-                      valstring <- paste0(valstring, "<br>")
-                  }
-                }
-            }
-            else {
-                valstring <- "<NA>"
-            }
-            page.content <- paste0(page.content, sprintf("    <td class=\"tdata%s\">%s</td>\n", 
-                arcstring, valstring))
-        }
-        if (showValueLabels) {
-            valstring <- c("")
-            if (index <= length(df.val)) {
-                vals <- df.val[[index]]
-                if (!is.null(vals)) {
-                  for (i in 1:length(vals)) {
-                    valstring <- paste0(valstring, vals[i])
-                    if (i < length(vals)) 
-                      valstring <- paste0(valstring, "<br>")
-                  }
-                }
-            }
-            else {
-                valstring <- "<NA>"
-            }
-            page.content <- paste0(page.content, sprintf("    <td class=\"tdata%s\">%s</td>\n", 
-                arcstring, valstring))
-        }
-        if (showFreq) {
-            page.content <- paste0(page.content, sprintf("    <td class=\"tdata%s\">%s</td>\n", 
-                arcstring, frq.value(index, x, df.val)))
-        }
-        if (showPerc) {
-            page.content <- paste0(page.content, sprintf("    <td class=\"tdata%s\">%s</td>\n", 
-                arcstring, prc.value(index, x, df.val)))
-        }
-        if (showWtdFreq && !is.null(weightBy)) {
-            page.content <- paste0(page.content, sprintf("    <td class=\"tdata%s\">%s</td>\n", 
-                arcstring, frq.value(index, x, df.val, weightBy)))
-        }
-        if (showPerc && !is.null(weightBy)) {
-            page.content <- paste0(page.content, sprintf("    <td class=\"tdata%s\">%s</td>\n", 
-                arcstring, prc.value(index, x, df.val, weightBy)))
-        }
-        if (!hideProgressBar) 
-            utils::setTxtProgressBar(pb, ccnt)
-        page.content <- paste0(page.content, "  </tr>\n")
-    }
-    if (!hideProgressBar) 
-        close(pb)
-    page.content <- paste(page.content, "</table>", sep = "\n")
-    toWrite <- paste0(toWrite, sprintf("%s\n</body></html>", 
-        page.content))
-    knitr <- page.content
-    knitr <- gsub("class=", "style=", knitr, fixed = TRUE, useBytes = TRUE)
-    knitr <- gsub("<table", sprintf("<table style=\"%s\"", css.table), 
-        knitr, fixed = TRUE, useBytes = TRUE)
-    knitr <- gsub(tag.tdata, css.tdata, knitr, fixed = TRUE, 
-        useBytes = TRUE)
-    knitr <- gsub(tag.thead, css.thead, knitr, fixed = TRUE, 
-        useBytes = TRUE)
-    knitr <- gsub(tag.arc, css.arc, knitr, fixed = TRUE, useBytes = TRUE)
-    if (remove.spaces) {
-        knitr <- sju.rmspc(knitr)
-        toWrite <- sju.rmspc(toWrite)
-        page.content <- sju.rmspc(page.content)
-    }
-    out.html.table(no.output, file, knitr, toWrite, useViewer)
-    invisible(structure(class = c("sjTable", "view_df"), list(page.style = page.style, 
-        page.content = page.content, output.complete = toWrite, 
-        knitr = knitr)))
-}
 ```
 
 ## Test the display of date fields
@@ -826,7 +631,7 @@ fields.math.fieldId <- my.tfd[fields.math.idx,"fieldId"]
 fields.math.fname <- my.tfd[fields.math.idx,"name"]
 fields.math.fname.full <- paste0(fields.math.fname , " -- ", fields.math.fieldId) # As a Column name of my.df
 
-play.with.numbers <- T # F # T
+play.with.numbers <- F # F # T
 if (play.with.numbers) {
     # Test for the missing info in Dates
     my.num.test.field <- 7
@@ -852,7 +657,6 @@ if (play.with.numbers) {
     
 
     view_df(as.data.frame(my.field.data.test), showType=TRUE)
-    view_df2(as.data.frame(my.field.data.test), showType=TRUE)
     view_df(as.data.frame(as.character(my.field.data.test)), showType=TRUE)
     sjt.df(as.data.frame(as.character(my.field.data.test)), showType=TRUE)
 
@@ -1102,7 +906,7 @@ for (cc in 1:length(colnames(my.df.c))) {
  
 view_df(data.frame(my.df.c.strings), 
         file=file.path(resultsRelDir, paste0(my.base.filename,"_view_df.html")),
-        showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE)
+        showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=F)
 # Produce the equivalent html but to be embedded in the knitted html produced, not as extra html file on disk
 view_df(data.frame(my.df.c.strings), 
         showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE, 
@@ -1110,10 +914,10 @@ view_df(data.frame(my.df.c.strings),
 
 sjt.df(as.data.frame(my.df.c.numbers),
        file=file.path(resultsRelDir, paste0(my.base.filename,"_sjt.df.description.html")),
-       showType=TRUE, describe=TRUE)
+       showType=FALSE, describe=TRUE)
 sjt.df(as.data.frame(my.df.c.numbers),
        file=file.path(resultsRelDir, paste0(my.base.filename,"_sjt.df.values.html")),
-       showType=TRUE, describe=FALSE)
+       showType=FALSE, describe=FALSE)
 
 ```
 
