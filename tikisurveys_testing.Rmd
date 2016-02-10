@@ -103,29 +103,42 @@ for (ii in 1:length(packages)) {
 #devtools::install_github("melff/memisc",subdir="pkg")
 my.paths.all <- .libPaths()
 my.paths.clean <- NULL
+# Define pvReq = Package Version Requirements (Name, Version, URL)
+
+#pvReq <- data.frame("sjPlot", "1.8.4",
+#                      "https://cran.r-project.org/src/contrib/Archive/sjPlot/sjPlot_1.8.4.tar.gz") 
+pvReq <- data.frame("sjPlot", "1.9.1",
+                      "https://cran.r-project.org/src/contrib/sjPlot_1.9.1.tar.gz", stringsAsFactors=FALSE) 
+colnames(pvReq) <- c("pName", "pVer", "pUrl") # pN = Package Name; pV = Package Version
+#str(pvReq)
+
 for (mm in 1:length(my.paths.all)) {
   cat(paste0(mm,"/", length(my.paths.all), ": Checking in ", my.paths.all[mm], "\n"))
-  if (any(grepl("sjPlot", installed.packages(lib=my.paths.all[mm])[,1]))) {
-#    cat(paste0("       *** sjPlot found in ", my.paths.all[mm], " ***\n"))
-    cat(paste0("       *** sjPlot found, v ", 
-               installed.versions("sjPlot", lib=my.paths.all[mm]),
-               " ***\n"))
-    my.paths.clean <- c(my.paths.clean, my.paths.all[mm])
-  } else {
-    cat(paste0("       (none found)\n"))
+  for (ii in 1:length(pvReq$pName)) {
+    if (any(grepl(pvReq$pName[ii], installed.packages(lib=my.paths.all[mm])[,1]))) {
+  #    cat(paste0("       *** sjPlot found in ", my.paths.all[mm], " ***\n"))
+      cat(paste0("       *** ", pvReq$pName[ii]," found, v ", 
+                 installed.versions(pvReq$pName[ii], lib=my.paths.all[mm]),
+                 " ***\n"))
+      my.paths.clean <- c(my.paths.clean, my.paths.all[mm])
+    } else {
+      cat(paste0("       (none found)\n"))
+    }
   }
 }
+class(my.path)
 for (my.path in my.paths.clean) {
   cat(paste0("Checking in ", my.path, "\n"))
-   if (installed.versions("sjPlot", lib=my.path) != "1.8.4") {
-    cat(paste0("       Different sjPlot version than 1.8.4: ",
-               installed.versions("sjPlot", lib=my.path), " \n"))
+  for (ii in 1:length(pvReq$pName)) {
+   if (installed.versions(pvReq$pName[ii], lib=my.path) != pvReq$pVer[ii]) {
+    cat(paste0("       Different ", pvReq$pName[ii]," version than ", pvReq$pVer[ii],": ",
+               installed.versions(pvReq$pName[ii], lib=my.path), " \n"))
    # Install a secific version of some package, like sjPlot 0.8.4
-   packageurl <- "https://cran.r-project.org/src/contrib/Archive/sjPlot/sjPlot_1.8.4.tar.gz"
-   install.packages(packageurl, repos=NULL, type="source")  
+   install.packages(pvReq$pUrl[ii], repos=NULL, type="source", lib=as.character(my.path))  
    } else {
-    cat(paste0("       sjPlot v: ", installed.versions("sjPlot", lib=my.path), " \n"))
+    cat(paste0("       ", pvReq$pName[ii]," v: ", installed.versions(pvReq$pName[ii], lib=my.path), " \n"))
    }
+  }
 }
 ```
 
@@ -792,9 +805,9 @@ my.df.c.strings[,my.df.c.date.fname] <- lapply(my.df.c[,my.df.c.date.fname] , fa
 
 ```
 
-## Tweak numeric, computed and math variables (convert to character)
+## Play with numbers & Tweak numeric, computed and math variables (convert to character)
 
-```{r Tweak numeric, computed and math variables  (convert to character)}
+```{r Play with numbers & Tweak numeric, computed and math variables  (convert to character)}
   # Convert to factor also the numeric values
 fields.numbers.idx <- grep("^n$", my.tfd$type, fixed=FALSE)
 length(fields.numbers.idx)
@@ -1081,12 +1094,12 @@ for (cc in 1:length(colnames(my.df.c))) {
     view_df(data.frame(my.df.c.strings[,colnames(my.df.c)[cc]]), 
             file=file.path(logsRelDir, paste0(my.base.filename,"_view_df_col", 
                                                  sprintf("%03d", cc),".html")),
-            showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE)
+            showNA = TRUE, showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE)
 }
  
 view_df(data.frame(my.df.c.strings), 
         file=file.path(resultsRelDir, paste0(my.base.filename,"_view_df.html")),
-        showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE)
+        showNA = TRUE, showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE)
 #view_df(data.frame(my.df.c), showFreq = TRUE, showPerc = TRUE) #  # As before, but with frequencies and percentages (as a "codebook")
 sjt.df(as.data.frame(my.df.c.numbers),
        file=file.path(resultsRelDir, paste0(my.base.filename,"_sjt.df.html")),
