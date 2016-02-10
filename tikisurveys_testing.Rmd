@@ -73,7 +73,6 @@ if( any(!pBIOC %in% rownames(installed.packages())) ){
 # Names of packages to be installed from CRAN if not present yet in this machine
 pCRAN <- c("devtools",
            "scales",
-           "sjPlot",
            "sjmisc",
            "ggplot2",
            "httr",
@@ -105,10 +104,10 @@ my.paths.all <- .libPaths()
 my.paths.clean <- NULL
 # Define pvReq = Package Version Requirements (Name, Version, URL)
 
-#pvReq <- data.frame("sjPlot", "1.8.4",
-#                      "https://cran.r-project.org/src/contrib/Archive/sjPlot/sjPlot_1.8.4.tar.gz") 
-pvReq <- data.frame("sjPlot", "1.9.1",
-                      "https://cran.r-project.org/src/contrib/sjPlot_1.9.1.tar.gz", stringsAsFactors=FALSE) 
+pvReq <- data.frame("sjPlot", "1.8.4",
+                      "https://cran.r-project.org/src/contrib/Archive/sjPlot/sjPlot_1.8.4.tar.gz", stringsAsFactors=FALSE) 
+#pvReq <- data.frame("sjPlot", "1.9.1",
+#                      "https://cran.r-project.org/src/contrib/sjPlot_1.9.1.tar.gz", stringsAsFactors=FALSE) 
 colnames(pvReq) <- c("pName", "pVer", "pUrl") # pN = Package Name; pV = Package Version
 #str(pvReq)
 
@@ -133,6 +132,9 @@ for (my.path in my.paths.clean) {
    if (installed.versions(pvReq$pName[ii], lib=my.path) != pvReq$pVer[ii]) {
     cat(paste0("       Different ", pvReq$pName[ii]," version than ", pvReq$pVer[ii],": ",
                installed.versions(pvReq$pName[ii], lib=my.path), " \n"))
+   # remove the conflicting version of that package
+   cat(paste0("Removing  ", pvReq$pName[ii], "v ", pvReq$pVer[ii]," from ", my.path, "\n"))
+   remove.packages(pvReq$pName[ii], lib=my.path)   
    # Install a secific version of some package, like sjPlot 0.8.4
    install.packages(pvReq$pUrl[ii], repos=NULL, type="source", lib=as.character(my.path))  
    } else {
@@ -372,7 +374,7 @@ if (check.one.rb.field) {
       # "TAC evol 48h -- 73" # Type M - Multiple select field type
       # data: 
       # [1] "2, 3" "1, 3" "2, 3" "3"    "0"    ""     ""     ""     "0"    ""     ""     "1"    ""     ""     ""     "0"  
-    my.rb.test.field <- 9
+    my.rb.test.field <- 2
     my.rb.test.field.row <- which(my.tfd$fieldId==my.rb.test.field)
     my.tfd[which(my.tfd$fieldId==my.rb.test.field),"options"]
     my.options.test <- unlist(fromJSON(as.character(my.tfd[which(as.numeric(my.tfd$fieldId) ==
@@ -385,6 +387,7 @@ if (check.one.rb.field) {
     my.field.id.test <- my.rb.test.field
     my.field.colname.test <- paste0(my.field.name.test , " -- ", my.field.id.test) # As a Column name of my.df
     my.field.data.test <- as.data.frame(my.df.c[,my.field.colname.test])[,1]
+    my.field.data.test
     #Recode something like 
                       # "0"     "Mujer" "1"     "Varon" "99"    "ns/nc"
                       # into something like:
@@ -601,7 +604,7 @@ my.df.c.strings[,my.df.c.date.fname] <- lapply(my.df.c[,my.df.c.date.fname] , fa
 
 ## Play with numbers & Tweak numeric, computed and math variables (convert to character)
 
-```{r Play with numbers & Tweak numeric, computed and math variables  (convert to character)}
+```{r Play with numbers & Tweak numeric computed and math variables  (convert to character)}
   # Convert to factor also the numeric values
 fields.numbers.idx <- grep("^n$", my.tfd$type, fixed=FALSE)
 length(fields.numbers.idx)
@@ -893,6 +896,328 @@ for (ff in 1:length(fields.with.options.fieldId)) {
 # Produce some description out of the data
 
 ```{r Produce some description out of the data}
+
+view_df2 <- function (x, weightBy = NULL, file = NULL, alternateRowColors = TRUE, 
+    showID = TRUE, showType = FALSE, showValues = TRUE, showValueLabels = TRUE, 
+    showFreq = FALSE, showPerc = FALSE, showWtdFreq = FALSE, 
+    showWtdPerc = FALSE, showNA = FALSE, sortByName = FALSE, 
+    breakVariableNamesAt = 50, encoding = NULL, hideProgressBar = FALSE, 
+    CSS = NULL, useViewer = TRUE, no.output = FALSE, remove.spaces = TRUE) 
+{
+
+    encoding <- my.c.encoding# get.encoding(encoding, x)
+    if (!is.data.frame(x)) 
+        stop("Parameter needs to be a data frame!", call. = FALSE)
+    df.var <- sjmisc::get_label(x)
+    df.val <- sjmisc::get_labels(x)
+    colcnt <- ncol(x)
+    id <- 1:colcnt
+    if (sortByName) 
+        id <- id[order(colnames(x))]
+    tag.table <- "table"
+    tag.thead <- "thead"
+    tag.tdata <- "tdata"
+    tag.arc <- "arc"
+    css.table <- "border-collapse:collapse; border:none;"
+    css.thead <- "border-bottom:double; font-style:italic; font-weight:normal; padding:0.2cm; text-align:left; vertical-align:top;"
+    css.tdata <- "padding:0.2cm; text-align:left; vertical-align:top;"
+    css.arc <- "background-color:#eaeaea"
+    if (!is.null(CSS)) {
+        if (!is.null(CSS[["css.table"]])) 
+            css.table <- ifelse(substring(CSS[["css.table"]], 
+                1, 1) == "+", paste0(css.table, substring(CSS[["css.table"]], 
+                2)), CSS[["css.table"]])
+        if (!is.null(CSS[["css.thead"]])) 
+            css.thead <- ifelse(substring(CSS[["css.thead"]], 
+                1, 1) == "+", paste0(css.thead, substring(CSS[["css.thead"]], 
+                2)), CSS[["css.thead"]])
+        if (!is.null(CSS[["css.tdata"]])) 
+            css.tdata <- ifelse(substring(CSS[["css.tdata"]], 
+                1, 1) == "+", paste0(css.tdata, substring(CSS[["css.tdata"]], 
+                2)), CSS[["css.tdata"]])
+        if (!is.null(CSS[["css.arc"]])) 
+            css.arc <- ifelse(substring(CSS[["css.arc"]], 1, 
+                1) == "+", paste0(css.arc, substring(CSS[["css.arc"]], 
+                2)), CSS[["css.arc"]])
+    }
+    page.style <- sprintf("<style>\n%s { %s }\n.%s { %s }\n.%s { %s }\n.%s { %s }\n</style>", 
+        tag.table, css.table, tag.thead, css.thead, tag.tdata, 
+        css.tdata, tag.arc, css.arc)
+    toWrite <- sprintf("<html>\n<head>\n<meta http-equiv=\"Content-type\" content=\"text/html;charset=%s\">\n%s\n</head>\n<body>\n", 
+        encoding, page.style)
+    page.content <- "<table>"
+    page.content <- paste0(page.content, "  <tr>\n    ")
+    if (showID) 
+        page.content <- paste0(page.content, "<th class=\"thead\">ID</th>")
+    page.content <- paste0(page.content, "<th class=\"thead\">Name</th>")
+    if (showType) 
+        page.content <- paste0(page.content, "<th class=\"thead\">Type</th>")
+    page.content <- paste0(page.content, "<th class=\"thead\">Label</th>")
+    if (showNA) 
+        page.content <- paste0(page.content, "<th class=\"thead\">missings</th>")
+    if (showValues) 
+        page.content <- paste0(page.content, "<th class=\"thead\">Values</th>")
+    if (showValueLabels) 
+        page.content <- paste0(page.content, "<th class=\"thead\">Value Labels</th>")
+    if (showFreq) 
+        page.content <- paste0(page.content, "<th class=\"thead\">Freq.</th>")
+    if (showPerc) 
+        page.content <- paste0(page.content, "<th class=\"thead\">%</th>")
+    if (showWtdFreq) 
+        page.content <- paste0(page.content, "<th class=\"thead\">weighted Freq.</th>")
+    if (showWtdPerc) 
+        page.content <- paste0(page.content, "<th class=\"thead\">weighted %</th>")
+    page.content <- paste0(page.content, "\n  </tr>\n")
+    if (!hideProgressBar) 
+        pb <- utils::txtProgressBar(min = 0, max = colcnt, style = 3)
+    for (ccnt in 1:colcnt) {
+        index <- id[ccnt]
+        arcstring <- ""
+        if (alternateRowColors) 
+            arcstring <- ifelse(sjmisc::is_even(ccnt), " arc", 
+                "")
+        page.content <- paste0(page.content, "  <tr>\n")
+        if (showID) 
+            page.content <- paste0(page.content, sprintf("    <td class=\"tdata%s\">%i</td>\n", 
+                arcstring, index))
+        page.content <- paste0(page.content, sprintf("    <td class=\"tdata%s\">%s</td>\n", 
+            arcstring, colnames(x)[index]))
+        if (showType) {
+            vartype <- get.vartype2(x[[index]])
+            page.content <- paste0(page.content, sprintf("    <td class=\"tdata%s\">%s</td>\n", 
+                arcstring, vartype))
+        }
+        if (index <= length(df.var)) {
+            varlab <- df.var[index]
+            if (!is.null(breakVariableNamesAt)) {
+                varlab <- sjmisc::word_wrap(varlab, breakVariableNamesAt, 
+                  "<br>")
+            }
+        }
+        else {
+            varlab <- "<NA>"
+        }
+        page.content <- paste0(page.content, sprintf("    <td class=\"tdata%s\">%s</td>\n", 
+            arcstring, varlab))
+        if (showNA) {
+            page.content <- paste0(page.content, sprintf("    <td class=\"tdata%s\">%i (%.2f%%)</td>\n", 
+                arcstring, sum(is.na(x[[index]]), na.rm = T), 
+                100 * sum(is.na(x[[index]]), na.rm = T)/nrow(x)))
+        }
+        if (showValues) {
+            valstring <- c("")
+            if (index <= ncol(x)) {
+                vals <- sjmisc::get_values(x[[index]])
+                if (!is.null(vals)) {
+                  for (i in 1:length(vals)) {
+                    valstring <- paste0(valstring, vals[i])
+                    if (i < length(vals)) 
+                      valstring <- paste0(valstring, "<br>")
+                  }
+                }
+            }
+            else {
+                valstring <- "<NA>"
+            }
+            page.content <- paste0(page.content, sprintf("    <td class=\"tdata%s\">%s</td>\n", 
+                arcstring, valstring))
+        }
+        if (showValueLabels) {
+            valstring <- c("")
+            if (index <= length(df.val)) {
+                vals <- df.val[[index]]
+                if (!is.null(vals)) {
+                  for (i in 1:length(vals)) {
+                    valstring <- paste0(valstring, vals[i])
+                    if (i < length(vals)) 
+                      valstring <- paste0(valstring, "<br>")
+                  }
+                }
+            }
+            else {
+                valstring <- "<NA>"
+            }
+            page.content <- paste0(page.content, sprintf("    <td class=\"tdata%s\">%s</td>\n", 
+                arcstring, valstring))
+        }
+        if (showFreq) {
+            page.content <- paste0(page.content, sprintf("    <td class=\"tdata%s\">%s</td>\n", 
+                arcstring, frq.value2(index, x, df.val)))
+        }
+        if (showPerc) {
+            page.content <- paste0(page.content, sprintf("    <td class=\"tdata%s\">%s</td>\n", 
+                arcstring, prc.value(index, x, df.val)))
+        }
+        if (showWtdFreq && !is.null(weightBy)) {
+            page.content <- paste0(page.content, sprintf("    <td class=\"tdata%s\">%s</td>\n", 
+                arcstring, frq.value2(index, x, df.val, weightBy)))
+        }
+        if (showPerc && !is.null(weightBy)) {
+            page.content <- paste0(page.content, sprintf("    <td class=\"tdata%s\">%s</td>\n", 
+                arcstring, prc.value(index, x, df.val, weightBy)))
+        }
+        if (!hideProgressBar) 
+            utils::setTxtProgressBar(pb, ccnt)
+        page.content <- paste0(page.content, "  </tr>\n")
+    }
+    if (!hideProgressBar) 
+        close(pb)
+    page.content <- paste(page.content, "</table>", sep = "\n")
+    toWrite <- paste0(toWrite, sprintf("%s\n</body></html>", 
+        page.content))
+    knitr <- page.content
+    knitr <- gsub("class=", "style=", knitr, fixed = TRUE, useBytes = TRUE)
+    knitr <- gsub("<table", sprintf("<table style=\"%s\"", css.table), 
+        knitr, fixed = TRUE, useBytes = TRUE)
+    knitr <- gsub(tag.tdata, css.tdata, knitr, fixed = TRUE, 
+        useBytes = TRUE)
+    knitr <- gsub(tag.thead, css.thead, knitr, fixed = TRUE, 
+        useBytes = TRUE)
+    knitr <- gsub(tag.arc, css.arc, knitr, fixed = TRUE, useBytes = TRUE)
+    if (remove.spaces) {
+        knitr <- sju.rmspc(knitr)
+        toWrite <- sju.rmspc(toWrite)
+        page.content <- sju.rmspc(page.content)
+    }
+    out.html.table(no.output, file, knitr, toWrite, useViewer)
+    invisible(structure(class = c("sjTable", "view_df"), list(page.style = page.style, 
+        page.content = page.content, output.complete = toWrite, 
+        knitr = knitr)))
+}
+
+frq.value2 <- function (index, x, df.val, weights = NULL) 
+{
+    valstring <- ""
+    if (index <= ncol(x) && !is.null(df.val[[index]])) {
+        if (!is.null(weights)) 
+            variab <- sjmisc::weight(x[[index]], weights)
+        else variab <- x[[index]]
+        ftab <- create.frq.df2(variab, 20)$mydat$frq
+        if (length(ftab) == 1 && is.na(ftab)) {
+            valstring <- "<NA>"
+        }
+        else {
+            for (i in 1:(length(ftab) - 1)) {
+                valstring <- paste0(valstring, ftab[i])
+                if (i < length(ftab)) 
+                  valstring <- paste0(valstring, "<br>")
+            }
+        }
+    }
+    else {
+        valstring <- ""
+    }
+    return(valstring)
+}
+
+get.vartype2 <- function (x) 
+{
+    vt <- c("unknown type")
+    if (methods::is(x, "Date")) 
+        vt <- c("date")
+    else if (inherits(x, "POSIXct")) 
+        vt <- c("POSIXct")
+    else if (inherits(x, "POSIXlt")) 
+        vt <- c("POSIXlt")
+    else if (inherits(x, "POSIXt")) 
+        vt <- c("POSIXt")
+    else if (is.character(x)) 
+        vt <- c("character")
+    else if (is.ordered(x)) 
+        vt <- c("ordinal")
+    else if (is.factor(x)) 
+        vt <- c("categorical")
+    else if (is.integer(x)) 
+        vt <- c("numeric")
+    else if (is.double(x)) 
+        vt <- c("numeric-double")
+    else if (is.numeric(x)) 
+        vt <- c("numeric")
+    else if (is.atomic(x)) 
+        vt <- c("atomic")
+    return(vt)
+}
+
+create.frq.df2 <- function (x, breakLabelsAt = Inf, order.frq = "none", round.prz = 2, 
+    na.rm = FALSE, weightBy = NULL) 
+{
+    if (length(stats::na.omit(x)) == 0) {
+        mydat <- data.frame(val = NA, label = NA, frq = NA, raw.prc = NA, 
+            valid.prc = NA, cum.perc = NA, upper.ci = NA, lower.ci = NA)
+        return(invisible(structure(list(mydat = mydat))))
+    }
+    labels <- sjmisc::get_labels(x, attr.only = T, include.values = "n", 
+        include.non.labelled = T)
+    if (!is.null(weightBy)) 
+        x <- sjmisc::weight(x, weightBy)
+    if (!is.null(labels)) {
+        dat <- data.frame(n = names(labels), v = as.character(labels), 
+            stringsAsFactors = FALSE)
+        colnames(dat) <- c("val", "label")
+        if (is.character(dat$val) && anyNA(suppressWarnings(as.numeric(dat$val)))) 
+            dat$val <- sjmisc::to_value(dat$val, keep.labels = F)
+        else dat$val <- as.numeric(dat$val)
+        dat2 <- data.frame(table(x, exclude = NULL))
+        colnames(dat2) <- c("val", "frq")
+        dat2$val <- sjmisc::to_value(dat2$val, keep.labels = F)
+        mydat <- suppressMessages(dplyr::full_join(dat, dat2))
+        suppressMessages(sjmisc::replace_na(mydat$frq) <- 0)
+    }
+    else {
+        mydat <- data.frame(table(x, exclude = NULL))
+        colnames(mydat) <- c("val", "frq")
+        mydat$label <- labels <- as.character(mydat$val)
+    }
+    if (is.factor(x)) {
+        x <- sjmisc::to_value(x, keep.labels = F)
+    }
+    valid.vals <- nrow(mydat) - 1
+    
+    if (!is.numeric(x)) {
+      total_sum = length(x)
+    } else {
+      total_sum = sum(x, na.rm = T)
+    }
+    rel_frq <- as.numeric(mydat$frq/total_sum)
+    ci <- 1.96 * suppressWarnings(sqrt(rel_frq * (1 - rel_frq)/total_sum))
+    mydat$upper.ci <- total_sum * (rel_frq + ci)
+    mydat$lower.ci <- total_sum * (rel_frq - ci)
+    mydat$rel.upper.ci <- rel_frq + ci
+    mydat$rel.lower.ci <- rel_frq - ci
+    if (!is.null(order.frq) && (order.frq == "asc" || order.frq == 
+        "desc")) {
+        ord <- order(mydat$frq[1:valid.vals], decreasing = (order.frq == 
+            "desc"))
+        mydat <- mydat[c(ord, valid.vals + 1), ]
+        labels <- labels[ord]
+    }
+    mydat$raw.prc <- mydat$frq/sum(mydat$frq)
+    mydat$valid.prc <- c(mydat$frq[1:valid.vals]/length(stats::na.omit(x)), 
+        NA)
+    mydat$cum.prc <- c(cumsum(mydat$valid.prc[1:valid.vals]), 
+        NA)
+    mydat$raw.prc <- 100 * round(mydat$raw.prc, round.prz + 2)
+    mydat$cum.prc <- 100 * round(mydat$cum.prc, round.prz + 2)
+    mydat$valid.prc <- 100 * round(mydat$valid.prc, round.prz + 
+        2)
+    if (na.rm) {
+        mydat <- mydat[1:valid.vals, ]
+    }
+    if (!is.null(mydat$label)) 
+        mydat$label[is.na(mydat$label)] <- "NA"
+    suppressMessages(sjmisc::replace_na(mydat$val) <- nrow(mydat))
+    mydat$val <- sjmisc::to_value(mydat$val, keep.labels = F)
+    if (!is.infinite(breakLabelsAt) && !is.null(labels)) {
+        if (anyNA(labels)) 
+            labels <- na.omit(labels)
+        labels <- sjmisc::word_wrap(labels, breakLabelsAt)
+    }
+    class(mydat) <- "data.frame"
+    invisible(structure(list(mydat = mydat, labels = labels, 
+        minval = min(sjmisc::to_value(mydat$val, keep.labels = FALSE), 
+            na.rm = TRUE))))
+}
+
 require(sjmisc)
 require(sjPlot)
 
@@ -904,9 +1229,9 @@ for (cc in 1:length(colnames(my.df.c))) {
             showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE)
 }
  
-view_df(data.frame(my.df.c.strings), 
+view_df2(data.frame(my.df.c.strings), 
         file=file.path(resultsRelDir, paste0(my.base.filename,"_view_df.html")),
-        showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=F)
+        showFreq = T, showPerc = T, encoding = "UTF-8", showType=F)
 # Produce the equivalent html but to be embedded in the knitted html produced, not as extra html file on disk
 # view_df(data.frame(my.df.c.strings), 
 #         showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE, 
