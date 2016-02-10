@@ -908,9 +908,9 @@ view_df(data.frame(my.df.c.strings),
         file=file.path(resultsRelDir, paste0(my.base.filename,"_view_df.html")),
         showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=F)
 # Produce the equivalent html but to be embedded in the knitted html produced, not as extra html file on disk
-view_df(data.frame(my.df.c.strings), 
-        showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE, 
-        no.output=TRUE)$knitr
+# view_df(data.frame(my.df.c.strings), 
+#         showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE, 
+#         no.output=TRUE)$knitr
 
 sjt.df(as.data.frame(my.df.c.numbers),
        file=file.path(resultsRelDir, paste0(my.base.filename,"_sjt.df.description.html")),
