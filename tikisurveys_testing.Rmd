@@ -126,7 +126,7 @@ for (mm in 1:length(my.paths.all)) {
     }
   }
 }
-class(my.path)
+
 for (my.path in my.paths.clean) {
   cat(paste0("Checking in ", my.path, "\n"))
   for (ii in 1:length(pvReq$pName)) {
@@ -1094,16 +1094,19 @@ for (cc in 1:length(colnames(my.df.c))) {
     view_df(data.frame(my.df.c.strings[,colnames(my.df.c)[cc]]), 
             file=file.path(logsRelDir, paste0(my.base.filename,"_view_df_col", 
                                                  sprintf("%03d", cc),".html")),
-            showNA = TRUE, showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE)
+            showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE)
 }
  
 view_df(data.frame(my.df.c.strings), 
         file=file.path(resultsRelDir, paste0(my.base.filename,"_view_df.html")),
-        showNA = TRUE, showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE)
+        showFreq = TRUE, showPerc = TRUE, encoding = "UTF-8", showType=TRUE)
 #view_df(data.frame(my.df.c), showFreq = TRUE, showPerc = TRUE) #  # As before, but with frequencies and percentages (as a "codebook")
 sjt.df(as.data.frame(my.df.c.numbers),
-       file=file.path(resultsRelDir, paste0(my.base.filename,"_sjt.df.html")),
-       showType=TRUE)
+       file=file.path(resultsRelDir, paste0(my.base.filename,"_sjt.df.description.html")),
+       showType=TRUE, describe=TRUE)
+sjt.df(as.data.frame(my.df.c.numbers),
+       file=file.path(resultsRelDir, paste0(my.base.filename,"_sjt.df.values.html")),
+       showType=TRUE, describe=FALSE)
 
 #view_df(data.frame(my.ds), file=paste0("view_df_my.ds", ".html"))
 #view_df(data.frame(my.ds), showFreq = TRUE, showPerc = TRUE) #  # As before, but with frequencies and percentages (as a "codebook")
