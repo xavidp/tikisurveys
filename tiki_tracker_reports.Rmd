@@ -1,0 +1,542 @@
+---
+title: "Tiki Tracker Reports"
+author: "Xavier de Pedro Puente"
+date: "21/07/2016"
+output: 
+  html_document:
+    toc: true
+    number_sections: true
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+Interesting Slides from a presentation in VII Jornades de Usuarios de R (R-es)
+See Presentation from:
+http://files.meetup.com/1781511/useR%20Vignette%20-%20Accessing%20Databases%20from%20R%20-%2020110504.pdf
+
+# Basic params
+
+```{r Basic params, echo=FALSE}
+
+#baseDir <- paste0("/home/xavi/Estudis/", analysisName) # Pentinella
+baseDir <- "."
+workingDir <- baseDir
+setwd(workingDir)
+dataRelDir <- "data"
+resultsRelDir <- "results"
+logsRelDir <- "logs"
+
+folders2create <- c(dataRelDir, resultsRelDir, logsRelDir)
+# Start loop over folders
+for (folder in folders2create) {
+  # Check if folder exists. If not, create it.
+  if (!dir.exists(file.path(workingDir, folder))) dir.create(file.path(workingDir, folder))
+  }
+```
+
+# Install packages
+
+## System packages
+You will need unaccent (which reuses iconv system command in the backend) to replace accented characters with their non-accented counterparts. The function iconv from the R package works well with data inside a data.frame, but it seems to produce NA when the string to make the replacement in, is the column name of the dataframe. Therefore, since we need to do this replacement for the data in the csv coming from the tracker, we will do so with a system command to that csv file before reading it into a data.frame in R.
+
+We will also replace some strings there with system program "sed" . See:
+* http://www.grymoire.com/Unix/Sed.html 
+* http://www.brunolinux.com/02-The_Terminal/Find_and%20Replace_with_Sed.html
+
+You can install them in Debian based machines with:
+
+> sudo apt-get install unaccent sed
+
+## R packages (from CRAN and eventually from Bioconductor)
+```{r Install packages, echo=TRUE, message=FALSE}
+Sys.setenv(GIT_ASKPASS=Sys.getenv("SSH_ASKPASS"))
+#############################
+# Package dependencies
+#############################
+## ----librerias, eval=TRUE------------------------------------------------
+## Bioconductor
+installifnot <- function (pckgName){
+  if(!(require(pckgName, character.only=TRUE))){
+    source("http://Bioconductor.org/biocLite.R")
+    biocLite(pckgName)
+  }
+}
+# Names of packages to be installed from BIOCONDUCTOR if not present yet in this machine
+pBIOC <- NULL
+
+if( any(!pBIOC %in% rownames(installed.packages())) ){
+  installifnot(pBIOC[!pBIOC %in% rownames(installed.packages())])
+}
+
+# Names of packages to be installed from CRAN if not present yet in this machine
+pCRAN <- c("devtools",
+           "scales",
+           "sjmisc",
+           "ggplot2",
+           "httr",
+           "stringi",
+           "stringr",
+           "data.table",
+           "RMySQL",
+           "jsonlite",
+           "readr",
+           "dplyr",
+           "versions",
+           "memisc")
+
+if( any(!pCRAN %in% rownames(installed.packages())) ){
+  install.packages(pCRAN[!pCRAN %in% rownames(installed.packages())])
+}
+
+if(!require(rCharts)) devtools::install_github('rCharts', 'ramnathv')
+if(!require(htmlwidgets)) devtools::install_github("ramnathv/htmlwidgets")
+if(!require(rpivotTable)) devtools::install_github("smartinsightsfromdata/rpivotTable")
+
+#Load required libraries
+packages <- c(pBIOC, pCRAN)
+for (ii in 1:length(packages)) {
+  require(as.character(packages[ii]), character.only=TRUE)
+}
+
+# if memisc fails for some reason on CRAN, like the package is just updated online but CRAN still points to the old package which is not available anymore, then you can install through github:
+#devtools::install_github("melff/memisc",subdir="pkg")
+my.paths.all <- .libPaths()
+my.paths.clean <- NULL
+# Define pvReq = Package Version Requirements (Name, Version, URL)
+
+pvReq <- data.frame("sjPlot", "1.8.4",
+                      "https://cran.r-project.org/src/contrib/Archive/sjPlot/sjPlot_1.8.4.tar.gz", stringsAsFactors=FALSE) 
+#pvReq <- data.frame("sjPlot", "1.9.1",
+#                      "https://cran.r-project.org/src/contrib/sjPlot_1.9.1.tar.gz", stringsAsFactors=FALSE) 
+colnames(pvReq) <- c("pName", "pVer", "pUrl") # pN = Package Name; pV = Package Version
+#str(pvReq)
+
+for (mm in 1:length(my.paths.all)) {
+  cat(paste0(mm,"/", length(my.paths.all), ": Checking in ", my.paths.all[mm], "\n"))
+  for (ii in 1:length(pvReq$pName)) {
+    if (any(grepl(pvReq$pName[ii], installed.packages(lib=my.paths.all[mm])[,1]))) {
+  #    cat(paste0("       *** sjPlot found in ", my.paths.all[mm], " ***\n"))
+      cat(paste0("       *** ", pvReq$pName[ii]," found, v ", 
+                 installed.versions(pvReq$pName[ii], lib=my.paths.all[mm]),
+                 " ***\n"))
+      my.paths.clean <- c(my.paths.clean, my.paths.all[mm])
+    } else {
+      cat(paste0("       (none found)\n"))
+    }
+  }
+}
+
+for (my.path in my.paths.clean) {
+  cat(paste0("Checking in ", my.path, "\n"))
+  for (ii in 1:length(pvReq$pName)) {
+   if (installed.versions(pvReq$pName[ii], lib=my.path) != pvReq$pVer[ii]) {
+    cat(paste0("       Different ", pvReq$pName[ii]," version than ", pvReq$pVer[ii],": ",
+               installed.versions(pvReq$pName[ii], lib=my.path), " \n"))
+   # remove the conflicting version of that package
+   cat(paste0("Removing  ", pvReq$pName[ii], "v ", pvReq$pVer[ii]," from ", my.path, "\n"))
+   remove.packages(pvReq$pName[ii], lib=my.path)   
+   # Install a secific version of some package, like sjPlot 0.8.4
+   install.packages(pvReq$pUrl[ii], repos=NULL, type="source", lib=as.character(my.path))  
+   } else {
+    cat(paste0("       ", pvReq$pName[ii]," v: ", installed.versions(pvReq$pName[ii], lib=my.path), " \n"))
+   }
+  }
+}
+```
+
+# Load data from Rda (if available)
+
+```{r Load data from Rda (if available), echo=TRUE}
+my.rda <- "mySession.Rda"
+
+# load it from disk (if present on disk)
+if (file.exists(file.path(getwd(), my.rda))) {
+  ## ----loadData------------------------------------------------------------
+  load(file=file.path(getwd(), my.rda))
+}
+```
+
+# Fetch data from the tracker db into a .csv file on disk
+
+```{r Fetch data from the trasplantaments db into a .csv file on disk, echo=T}
+aID <- "TikiTrackerDB" # Analysis ID
+
+# If your tiki is not under localhost, adapt the path below for my.file
+#my.file <- "http://localhost/12.x/tiki-ajax_services.php?controller=tracker&action=export_items&trackerId=1&encoding=UTF-8&separator=%2C&delimitorL=%22&delimitorR=%22&CR=%25%25%25&listfields[]=9&listfields[]=10&listfields[]=11&recordsMax=-1"
+my.trackerId <- 2
+my.domain <- "http://localhost/15.x/"
+my.file <- paste0(my.domain, "tiki-ajax_services.php?controller=tracker&action=export_items&trackerId=", my.trackerId,"&encoding=UTF-8&separator=%2C&delimitorL=%22&delimitorR=%22&CR=%25%25%25&recordsMax=-1")
+
+
+# You need to set "Admin > Control Panels > Security > HTTP Basic Authentication" (login_http_basic) to "Always"" or "SSL Only" 
+# Then create a user with the following credentials in your Tiki
+#my.c <- GET(my.file, authenticate("exporter", "12345"))
+my.c <- GET(my.file, authenticate("exporter@example.com", "123abc"))
+# my.c stands for my connection. It has a list of 10 elements.
+names(my.c)
+# [1] "url"         "status_code" "headers"     "all_headers" "cookies"     "content"     "date"       
+# [8] "times"       "request"     "handle" 
+
+str(content(my.c))
+
+# Fetch a guess for the encoding of the data that came from Tiki. It should be UTS-8 in most cases, but you never know (it depends on the configuration set at the local tiki instance)
+my.c.encoding <- stringi::stri_enc_detect(httr::content(my.c, "raw"))
+my.c.encoding
+my.c.encoding <- my.c.encoding[[1]]$Encoding[1]
+my.c.encoding
+#my.df <- content(my.c, "text", encoding = my.c.encoding)
+
+# Fetch content in binari form and save to plain text file on disk
+bin <- httr::content(my.c, "raw", encoding="UTF-8")
+my.base.filename <- paste0("trk", my.trackerId,"_", format(Sys.Date(), "%y%m%d"))
+writeBin(bin, file.path(getwd(), dataRelDir, paste0(my.base.filename, "_my.df.dirty.csv")))
+```
+
+## massage and cleanup the dataset
+We tried applying an "apply" function to the whole data frame just for the sake of practising with the apply function itself, since the gsub would do it on the 2nd column, which is the only one selfnumbered which carries this html markup to show the "#" sign in front of it, as defined in the Tracker Field definition. However, since the apply converts the dataframe into a matrix, and classes of the data.frme variables get lost, we avoid it, and we use a for loop and replace on site
+
+```{r massage and cleanup the dataset, echo=TRUE}
+Sys.setlocale('LC_ALL','C') # Needed to avoid this warning message: "input string 90 is invalid in this locale", etc. Adn this line had this code: "1=S\xed\" (meaning "1=Sí").
+
+## This command with iconv after the csv is read into R will fail for colnames (it produces NA). 
+#  iconv(colnames(my.df), to='ASCII//TRANSLIT')
+## Therefore, solve this issue with a system call to unnaccent (reuing iconv in the backend)
+#  sudo apt-get install unaccent
+# unaccent UTF-8 < file > file.unaccented
+my.df.file.dirty <- file.path(getwd(), dataRelDir, paste0(my.base.filename, "_my.df.dirty.csv"))
+my.df.file.clean <- file.path(getwd(), dataRelDir, paste0(my.base.filename, "_my.df.clean.csv"))
+system(paste0("unaccent UTF-8 < ", my.df.file.dirty, " > ", my.df.file.clean))
+# Replace all html tags, such as "<span class='formunit'>#</span>" with sed at system level
+# sed 's/FINDSTRING/REPLACESTRING/g' $fl.old > $fl
+sed.command <- paste0("sed -i -e 's/<[^>]*>//g' ", my.df.file.clean)
+system(sed.command)
+sed.command <- paste0("sed -i -e 's/%%%//g' ", my.df.file.clean)
+system(sed.command)
+sed.command <- paste0("sed -i -e 's/\t//g' ", my.df.file.clean)
+system(sed.command)
+sed.command <- paste0("sed -i -e 's/?nbsp;//g' ", my.df.file.clean)
+system(sed.command)
+
+my.tracker.file <- paste0(my.base.filename, "_my.df.clean.csv")
+
+# Read the csv file
+#my.df <- fread(file.path(getwd(), dataRelDir, my.tracker.file), stringsAsFactors=FALSE, data.table=F)
+# Replace data.table::fread efficient function with readr::read_csv, which self recognizes data types, while standard read.csv or fread does not. 
+my.df <- readr::read_csv(my.df.file.clean)
+#str(my.df)
+head(my.df[,1:10])
+
+#class(gsub("<span class='formunit'>#</span>", "", my.df[,2], fixed=T))
+# Clean col 2 ("#Id -- 1", self numbered column in Tiki with this annoying span html class)
+#my.df[,"#Id -- 1"] <- gsub("<span class='formunit'>#</span>", "", my.df[,"#Id -- 1"], fixed=T)
+#my.df[,2] <- str_replace_all(my.df[,2], "<span class='formunit'>#</span>", "")
+#colnames(my.df)
+#iconv(colnames(my.df), to='ASCII//TRANSLIT')
+
+#my.df.c <- apply(my.df, 2, gsub, pattern="<span class='formunit'>#</span>", replacement="", fixed=T)
+
+# Convert the tbl_df class from readr package into a standard data.frame class to avoid some issues later on of functions for other packages not expecting to work with such tbl_df class
+my.df.c <- as.data.frame(my.df)
+head(my.df.c[,1:10])
+str(my.df.c)
+# Convert back the object to a data.frame
+#my.df.c <- data.frame(my.df.c, stringsAsFactors = FALSE) #
+#str(my.df.c)
+
+# Search for data for fieldId 549 in the my.df (Dataframe with data)
+#my.df[,grep("549", colnames(my.df.c))]
+#colnames(my.df)[grep("549", colnames(my.df.c))]
+
+```
+
+# Fetch Mysql DB Table for Tracker fields (Optional)
+
+This is only needed if you have dropdown fields or radio buttons in a tiki tracker with values different than labels.
+
+```{r Fetch Mysql DB Table for Tracker fields, echo=FALSE, message=FALSE}
+myTrackerId <- my.trackerId
+myMySQLUser <- "exporter"
+myMySQLPw   <- "12345"
+myTikiDb    <- "tiki15svn_sqbc"
+myTikiTable <- "tiki_tracker_fields"
+# connect to local MySQL database (host='localhost' by default)
+con = dbConnect(RMySQL::MySQL(), myTikiDb, username=myMySQLUser, password=myMySQLPw, host="127.0.0.1")
+summary(con)
+dbGetInfo(con)
+dbListResults(con)
+dbGetQuery(con, "SET NAMES utf8")
+dbGetQuery(con, 'set character set utf8')
+dbGetQuery(con, "SHOW VARIABLES LIKE 'character_set_%'")
+db.tables <- dbListTables(con)
+head(db.tables)
+#tmp <- sprintf("SELECT * FROM name WHERE lname = %s", "O'Reilly")
+#dbEscapeStrings(con, tmp)
+
+my.t = dbReadTable(con, myTikiTable) # All fields from all trackers
+head(my.t, 4)
+dim(my.t)
+# [1] 114  23
+
+my.tfd <- base::subset(my.t, trackerId == myTrackerId) # My Tracker Fields Definition
+
+# Save dataset to disk as csv
+my.tfd.file.dirty <- file.path(getwd(), dataRelDir, paste0(my.base.filename, "_my.tfd.dirty.csv"))
+write_csv(my.tfd, my.tfd.file.dirty)
+
+# Clean accents out of the Tracker Definition table data with "unaccent"" also here, in an equivalent way to the conversion done for the my.df dataset.
+# unaccent UTF-8 < file > file.unaccented
+my.tfd.file.clean <- file.path(getwd(), dataRelDir, paste0(my.base.filename, "_my.tfd.clean.csv"))
+system(paste0("unaccent UTF-8 < ", my.tfd.file.dirty, " > ", my.tfd.file.clean))
+
+# Read the csv file
+#my.df <- fread(file.path(getwd(), dataRelDir, my.tracker.file), stringsAsFactors=FALSE, data.table=F)
+# Replace data.table::fread efficient function with readr::read_csv, which self recognizes data types, while standard read.csv or fread does not. 
+#my.tfd <- readr::read_csv(my.tfd.file.clean)
+#my.tfd <- as.data.frame(my.tfd)
+#dim(my.tfd)
+#head(my.tfd)
+#str(my.tfd)
+
+# You might want to Check that there are not duplicataed field definitions
+#my.t.fieldIds = dbGetQuery(con, paste0("SELECT DISTINCT fieldId FROM ", myTikiTable))
+
+# Disconnect from the MySQL connection
+dbDisconnect(con)
+```
+
+## Clean the Tracker field definition also for weirdnesses (Optional)
+
+```{r Clean the Tracker field definition also for weirdnesses, echo=FALSE, message=FALSE}
+
+# With a simple gsub over columns options
+#issue.idx <- grep("\\u00", my.tfd[,"options"], fixed=T)
+#my.tfd[issue.idx,"options"]
+##grep("<U+00E1>", my.tfd[,"name"], fixed=T)
+my.tfd[,"options"] <- gsub("S\\u00cd", "Si", my.tfd[,"options"], fixed=T)
+my.tfd[,"options"] <- gsub("S\\u00ed", "Si", my.tfd[,"options"], fixed=T)
+#issue.idx <- grep("Tabaco", my.tfd[,"name"], fixed=T)
+#my.tfd[issue.idx,]
+
+# Pending ToDo: handle properly the Multiple option fields
+# --------
+#multopt.idx <- grep("\"inputtype\":\"m\"", my.tfd[,"options"], fixed=T)
+#my.tfd[multopt.idx,]
+# ---------
+
+my.tfd[,"options"] <- gsub("\\u00f3", "o", my.tfd[,"options"], fixed=T)
+my.tfd[,"options"] <- gsub("\\u00e1", "a", my.tfd[,"options"], fixed=T)
+my.tfd[,"options"] <- gsub("\\u00fa", "u", my.tfd[,"options"], fixed=T)
+my.tfd[,"options"] <- gsub("\\u00f1", "ny", my.tfd[,"options"], fixed=T)
+my.tfd[,"options"] <- gsub("\\u00e9", "e", my.tfd[,"options"], fixed=T)
+my.tfd[,"options"] <- gsub("\\u00ed", "i", my.tfd[,"options"], fixed=T)
+
+#issue.idx <- grep("\303", my.tfd[,"name"], fixed=T)
+#issue.idx <- grep("\302", my.tfd[,"name"], fixed=T)
+#my.tfd[issue.idx,"name"]
+my.tfd[,"name"] <- gsub("\303\241", "a", my.tfd[,"name"], fixed=T) # "á" for "a" # <U+00E1>
+my.tfd[,"name"] <- gsub("\303\255", "i", my.tfd[,"name"], fixed=T) # "í" for "i" # <U+00E1>
+my.tfd[,"name"] <- gsub("\303\263", "o", my.tfd[,"name"], fixed=T) # "ó" for "o" # <U+00E1>
+my.tfd[,"name"] <- gsub("\303\223", "O", my.tfd[,"name"], fixed=T) # "Ó" for "O" # <U+00E1>
+my.tfd[,"name"] <- gsub("\302\262", "2", my.tfd[,"name"], fixed=T) # "^2" for "2" # \302\262
+my.tfd[,"name"] <- gsub("\303", "", my.tfd[,"name"], fixed=T) # "" for "" # <U+00E1>
+
+# Same cleaning for Options
+my.tfd[,"options"] <- gsub("\303\241", "a", my.tfd[,"options"], fixed=T) # "á" for "a" # <U+00E1>
+my.tfd[,"options"] <- gsub("\303\255", "i", my.tfd[,"options"], fixed=T) # "í" for "i" # <U+00E1>
+my.tfd[,"options"] <- gsub("\303\263", "o", my.tfd[,"options"], fixed=T) # "ó" for "o" # <U+00E1>
+my.tfd[,"options"] <- gsub("\303\223", "O", my.tfd[,"options"], fixed=T) # "Ó" for "O" # <U+00E1>
+my.tfd[,"options"] <- gsub("\303", "", my.tfd[,"options"], fixed=T) # "" for "" # <U+00E1>
+
+#iconv(my.tfd[,"options"], to='ASCII//TRANSLIT')
+#iconv(my.tfd[,"name"], to='ASCII//TRANSLIT')
+
+#colnames(my.tfd)
+#my.tfd[grep("438", my.tfd$"fieldId"),]
+#my.tfd[grep("51$", my.tfd$"fieldId"),]
+#my.tfd[grep("\341", my.tfd$"name"),]
+
+# "Processing fieldId"
+
+#my.tfd <- apply(my.tfd, 2, gsub, pattern="S\\u00cd", replacement="Si", fixed=T)
+#my.tfd <- apply(my.tfd, 2, gsub, pattern="S\\u00ed", replacement="Si", fixed=T)
+```
+
+## Check field types and filter out unwanted fields (Optional)
+
+```{r Check field types and filter out unwanted fields, echo=FALSE, message=FALSE}
+
+# Have a look at the columns and some of their values of the tracker field definitions (my.tfd)
+head(my.tfd)
+
+# > table(my.tfd$type)
+# 
+#FG  a  d  m  t  u 
+# 1  1  2  2 19  1 
+#
+# Tracker field Codes that contain value=label pairs
+#Sys.getlocale()
+Sys.setlocale('LC_ALL','C') # Needed to avoid this warning message: "input string 90 is invalid in this locale", etc. Adn this line had this code: "1=S\xed\" (meaning "1=Sí").
+#my.tfd$options[90]
+table(my.tfd[grep("options", my.tfd$options, fixed=TRUE),"type"])
+#  D  M  R  d 
+#  1 13 80 26 
+#
+# d 
+# 2 
+#
+# D: Dropdown with other
+# M: Multiselect
+# R: Radio button
+# d: dropdown
+#
+# See this page to check their correspondence
+# https://dev.tiki.org/Tracker+Field+Types
+
+# Headers will be treated aside of the rest. 
+# h: Header
+#
+# Special handling will be needed also for field type:
+# f: Date and Time
+# FG: File Gallery
+
+
+```
+
+## Cleanup from TRACKER FIELD DEFINITION (my.tfd) (Optional)
+
+```{r Cleanup from TRACKER FIELD DEFINITION (my.tfd), echo=FALSE, message=FALSE}
+# FROM TRACKER FIELD DEFINITION (my.tfd)
+# --------------------------------------
+# We can start by removing them from the my.tfd to be displayed as results. We don't do a standard fixed grep to "h" since that would get also the field type "math". Therefore, we grep with a regular expression for "h" at the beggining of the sentence/value and ending with that character also.
+fields.headers.idx <- grep("^h$", my.tfd$type, fixed=FALSE)
+fields.filegal.idx <- grep("^FG$", my.tfd$type, fixed=FALSE)
+#length(fields.headers.idx)
+# 47
+if (length(fields.filegal.idx) > 0) {
+    # Get the fieldId's corresponding to Header type of Field
+    fields.filegal.fieldId <- my.tfd[fields.filegal.idx,"fieldId"]
+    # Remove those from the Tracker definition table (my.tfd)
+    my.tfd <- my.tfd[-fields.filegal.idx,]
+}
+
+#colnames(my.tfd)
+head(my.tfd[order(my.tfd$fieldId, decreasing=FALSE),],10)
+```
+
+## Cleanup from FROM TRACKER DATA (my.df.c) (Optional)
+
+```{r Cleanup from FROM TRACKER DATA (my.df.c), echo=FALSE, message=FALSE}
+# FROM TRACKER DATA (my.df.c)
+# ---------------------------
+# Remove those fields.headers.fieldId from the Tracker data (my.df.c)
+#fields.headers.fieldId
+#colnames(my.df.c)
+# Get the fieldId numbers from the colnames compound string (e.g. "INTRODUCCION -- 525")
+my.df.c.col.fieldId <- as.numeric(str_split_fixed(colnames(my.df.c), " -- ", n=2)[,2])
+if (length(fields.filegal.idx) > 0) {
+  # Get the column positions of the variables type FG
+  my.df.c.col.fieldId.fg <- my.df.c.col.fieldId %in% fields.filegal.fieldId
+  # Check that the results are the expected, and save that info in a vector for further checking and  debugging
+  my.df.c.colnames.fg.old <- colnames(my.df.c)[my.df.c.col.fieldId.fg]
+  #length(my.df.c.colnames.h.old)
+  my.df.c <- my.df.c[,!my.df.c.col.fieldId.fg]
+}
+#head(my.df.c[,1:15])
+#length(colnames(my.df.c))
+# Get rid also of the self-numbered id for the tracker
+#colnames(my.df.c)[1:10]
+#colnames(my.df.c.new)[1:10]
+#my.df.c <- my.df.c[,-grep("#Id -- 1", colnames(my.df.c))]
+#my.df.c <- my.df.c[,-grep("Comentarios -- 3", colnames(my.df.c))]
+#colnames(my.df.c.new)[1:10]
+
+# Clone my.df.c into equivalent df, one for transforming values to strings, and the other keep numeric values as numbers.
+my.df.c.strings <- my.df.c
+my.df.c.numbers <- my.df.c
+
+# Convert to factor all columns the carry dates
+my.df.c.date.fname <- grep("Fecha", colnames(my.df.c), fixed=F, ignore.case = T, value=T)
+if (length(my.df.c.date.fname) > 0 ) {
+  my.df.c.strings[,my.df.c.date.fname] <- lapply(my.df.c[,my.df.c.date.fname] , factor)
+}
+
+```
+
+
+## Get the list of fields TRACKER FIELD DEFINITION (my.tfd) with Options (Optional)
+
+```{r Get the list of fields TRACKER FIELD DEFINITION (my.tfd) with Options, echo=FALSE, message=FALSE}
+# FROM TRACKER FIELD DEFINITION (my.tfd)
+# --------------------------------------
+#colnames(my.tfd)
+#head(my.tfd[order(my.tfd$fieldId, decreasing=FALSE),],10)
+# Indexes of the data frame that correspond to fields which contain value:label pairs (as options)
+fields.with.options.idx <- grep("options", my.tfd$options, fixed=TRUE)
+  #head(my.tfd[fields.with.options.idx,])
+  #head(my.tfd[fields.with.options.idx, c("type","options")])
+# FieldId's for those cases of tracker fields (fields which contain value:label pairs, as options)
+fields.with.options.fieldId <- my.tfd[fields.with.options.idx,"fieldId"]
+```
+
+# Play with rpivotTable
+Information taken from  
+
+* http://www.magesblog.com/2015/03/pivot-tables-with-r.html
+* https://github.com/smartinsightsfromdata/rpivotTable
+
+```{r Play with rpivotTable}
+## Install packages
+#library(devtools)
+#install_github("ramnathv/htmlwidgets") 
+#install_github("smartinsightsfromdata/rpivotTable")
+## Load rpivotTable
+library(rpivotTable)
+#data(mtcars)
+## One line to create pivot table
+#rpivotTable(mtcars, rows="gear", col="cyl", aggregatorName="Average", vals="mpg", rendererName="Treemap")
+rpivotTable(my.df.c)
+```
+
+<br/><br/><br/><br/><br/>
+<br/><br/><br/><br/><br/>
+<br/><br/><br/><br/><br/>
+<br/><br/><br/><br/><br/>
+<br/><br/><br/><br/><br/>
+
+# Store objects into an Rda
+
+```{r Store objects into an Rda, echo=TRUE, message=TRUE}
+save(my.c,
+     my.df,
+     my.df.c,
+     my.tfd,
+     my.tracker.file,
+     my.ds,
+     file=my.rda)
+```
+
+# Stored session info
+
+```{r Stored session info, echo=TRUE, message=TRUE, eval=TRUE}
+###################################################
+# Store session info (package versions, etc) in the logs folder
+###################################################
+sink(file.path(logsRelDir, paste0("log_", format(Sys.Date(), format="%y%m%d"), "_", aID, ".txt")))
+cat("Sys.info() : \n")
+cat("--------------------\n")
+data.frame(Sys.info())
+if (exists("biocValid")) {
+  cat("\n\nbiocValid() : \n")
+  cat("--------------------\n")
+  biocValid()
+} else { # Only show sessionInfo() if no biocValid() is found since it's already included in it.
+  cat("\n\nsessionInfo() : \n")
+  cat("--------------------\n")
+  sessionInfo()
+}
+sink()
+
+```
+
